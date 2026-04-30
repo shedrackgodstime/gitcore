@@ -16,10 +16,10 @@ It manages only a dedicated `gity` block inside `~/.ssh/config`, leaving your ot
 
 ```bash
 # Quick install (Linux/macOS)
-curl -fsSL https://kristency.github.io/gity/install | sh
+curl -fsSL https://shedrackgodstime.github.io/gity/install | sh
 
 # Quick install (Windows)
-irm https://kristency.github.io/gity/ps | iex
+irm https://shedrackgodstime.github.io/gity/ps | iex
 
 # Or build from source
 cargo build --release
