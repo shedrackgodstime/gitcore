@@ -15,12 +15,15 @@ It manages only a dedicated `gity` block inside `~/.ssh/config`, leaving your ot
 ## Installation
 
 ```bash
-# Build from source
-cargo build --release
+# Quick install (Linux/macOS)
+curl -fsSL https://kristency.github.io/gity/install | sh
 
-# Copy binary to PATH
+# Quick install (Windows)
+irm https://kristency.github.io/gity/ps | iex
+
+# Or build from source
+cargo build --release
 sudo cp target/release/gity /usr/local/bin/gity
-chmod +x /usr/local/bin/gity
 ```
 
 ## Quick Start
