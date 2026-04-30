@@ -29,7 +29,7 @@ if ($Arch -eq "AMD64") {
     Write-Error "[-] Unsupported Architecture: $Arch"
 }
 
-$AssetName = "gity-${TargetArch}-pc-windows-msvc.tar.gz"
+$AssetName = "gity-${TargetArch}-pc-windows-msvc-pc-windows-msvc.tar.gz"
 $ReleaseUrl = "https://api.github.com/repos/kristency/gity/releases/latest"
 
 Write-Host "[*] Fetching latest release..."

@@ -50,7 +50,7 @@ case "$OS" in
     ;;
 esac
 
-ASSET_NAME="gity-${TARGET_ARCH}-${PLATFORM}.tar.gz"
+ASSET_NAME="gity-${TARGET_ARCH}-${PLATFORM}-${PLATFORM}.tar.gz"
 RELEASE_URL="https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
 
 printf "[*] Fetching latest release...\n"
