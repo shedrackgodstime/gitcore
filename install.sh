@@ -51,7 +51,7 @@ case "$OS" in
 esac
 
 ASSET_NAME="gity-${TARGET_ARCH}-${PLATFORM}.tar.gz"
-RELEASE_URL="https://api.github.com/repos/kristency/gity/releases/latest"
+RELEASE_URL="https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
 
 printf "[*] Fetching latest release...\n"
 DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep "browser_download_url" | grep "$ASSET_NAME" | cut -d '"' -f 4)
