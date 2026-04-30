@@ -61,6 +61,21 @@ pub fn convert_to_host(url: &str, host_alias: &str) -> String {
         }
     }
 
+    if url.starts_with("ssh://") {
+        if let Some(rest) = url.strip_prefix("ssh://") {
+            let parts: Vec<&str> = rest.split('/').collect();
+            if parts.len() >= 2
+                && (parts[0].contains("github.com")
+                    || parts[0].contains("gitlab.com")
+                    || parts[0].contains("codeberg.org")
+                    || parts[0].contains("bitbucket.org"))
+            {
+                let repo = parts[1..].join("/");
+                return format!("{}:{}", host_alias, repo);
+            }
+        }
+    }
+
     if !url.contains('@') && !url.starts_with("http") {
         if url.contains("github.com/")
             || url.contains("gitlab.com/")
@@ -127,7 +142,16 @@ mod tests {
     }
 
     #[test]
-    fn preserves_non_provider_urls() {
+    fn converts_ssh_url_with_known_host() {
+        let converted = convert_to_host(
+            "ssh://git@codeberg.org/manicoproject/wiki.git",
+            "codeberg-manico",
+        );
+        assert_eq!(converted, "codeberg-manico:manicoproject/wiki");
+    }
+
+    #[test]
+    fn preserves_non_provider_ssh_urls() {
         let converted = convert_to_host("ssh://git@example.com/acme/project.git", "github-work");
         assert_eq!(converted, "ssh://git@example.com/acme/project");
     }
