@@ -5,7 +5,7 @@ This document serves as the foundational law for all development on the Gity pro
 ## 1. Architectural Integrity
 - **Modularity over Monoliths**: Logic must be separated into focused modules (`ssh`, `git`, `ui`, `config`, `models`). No domain logic should ever be added back into `main.rs`.
 - **Surgical Edits**: When making changes, modify only what is necessary. Avoid unrelated refactoring or "cleanups" unless specifically tasked with a refactor.
-- **Single Source of Truth**: The `Cargo.toml` is the only source of truth for versioning and dependencies. All scripts and code must reference it dynamically.
+- **Single Source of Truth**: The `Cargo.toml` is the only source of truth for versioning and dependencies. All code and automation must reference it dynamically.
 
 ## 2. Technical Standards (Rust)
 - **Zero Warnings**: The project must remain `clippy`-clean. Suppressing warnings with `#[allow(...)]` is a last resort and requires a technical justification.
