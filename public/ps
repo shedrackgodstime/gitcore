@@ -7,11 +7,11 @@ if ($Help -or $args.Contains("help") -or $args.Contains("-h")) {
     Write-Host "gity installer - Manage multiple Git accounts safely" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  iwr gity.pages.dev/ps | iex"
+    Write-Host "  iwr shedrackgodstime.github.io/gity/ps | iex"
     Write-Host ""
     Write-Host "Examples:"
     Write-Host "  # Install gity"
-    Write-Host "  iwr gity.pages.dev/ps | iex"
+    Write-Host "  iwr shedrackgodstime.github.io/gity/ps | iex"
     exit
 }
 
@@ -22,22 +22,20 @@ Write-Host "--------------------------------------------------" -ForegroundColor
 
 $Arch = $Env:PROCESSOR_ARCHITECTURE
 if ($Arch -eq "AMD64") {
-    $TargetArch = "x86_64"
-} elseif ($Arch -eq "ARM64") {
-    $TargetArch = "aarch64"
+    $Target = "x86_64-pc-windows-msvc"
 } else {
-    Write-Error "[-] Unsupported Architecture: $Arch"
+    Write-Error "[-] Unsupported Architecture for Windows: $Arch (only x64 supported)"
 }
 
-$AssetName = "gity-${TargetArch}-pc-windows-msvc-pc-windows-msvc.tar.gz"
-$ReleaseUrl = "https://api.github.com/repos/kristency/gity/releases/latest"
+$AssetName = "gity-${Target}.tar.gz"
+$ReleaseUrl = "https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
 
 Write-Host "[*] Fetching latest release..."
 $Response = Invoke-RestMethod $ReleaseUrl
 $DownloadUrl = $Response.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -ExpandProperty browser_download_url
 
 if (-not $DownloadUrl) {
-    Write-Error "[-] Could not find asset: $AssetName"
+    Write-Error "[-] Could not find asset: $AssetName in $ReleaseUrl"
 }
 
 $TempDir = Join-Path $env:TEMP "gity-install-$((Get-Random))"
@@ -49,7 +47,7 @@ Invoke-WebRequest -Uri $DownloadUrl -OutFile (Join-Path $TempDir "gity.tar.gz") 
 Write-Host "[*] Unpacking..."
 tar -xzf (Join-Path $TempDir "gity.tar.gz") -C $TempDir
 
-$DestDir = "C:\Program Files\gity"
+$DestDir = Join-Path $HOME "AppData\Local\Programs\gity"
 if (-not (Test-Path $DestDir)) {
     New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
 }
@@ -74,5 +72,5 @@ Write-Host " * Help:          gity --help" -ForegroundColor White
 Write-Host ""
 Write-Host " * Restart your terminal to use gity from anywhere" -ForegroundColor Yellow
 Write-Host ""
-Write-Host " * Uninstall: iwr gity.pages.dev/uninstall-ps | iex" -ForegroundColor Gray
+Write-Host " * Uninstall: iwr shedrackgodstime.github.io/gity/uninstall-ps | iex" -ForegroundColor Gray
 Write-Host ""

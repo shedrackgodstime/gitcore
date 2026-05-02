@@ -67,15 +67,12 @@ jobs:
           if [ "${{ matrix.ext }}" = ".exe" ]; then
             cp target/${{ matrix.target }}/release/gity.exe dist/gity.exe
             cd dist
-            tar -czf ../gity-${TARGET_ARCH}-${PLATFORM}.tar.gz *
+            tar -czf ../gity-${{ matrix.target }}.tar.gz *
           else
             cp target/${{ matrix.target }}/release/gity dist/gity
             cd dist
-            tar -czf ../gity-${TARGET_ARCH}-${PLATFORM}.tar.gz *
+            tar -czf ../gity-${{ matrix.target }}.tar.gz *
           fi
-        env:
-          TARGET_ARCH: ${{ matrix.target }}
-          PLATFORM: ${{ matrix.platform }}
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2

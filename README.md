@@ -14,14 +14,18 @@ It manages only a dedicated `gity` block inside `~/.ssh/config`, leaving your ot
 
 ## Installation
 
+### Linux & macOS
 ```bash
-# Quick install (Linux/macOS)
-curl -fsSL https://raw.githubusercontent.com/shedrackgodstime/gity/main/install.sh | sh
+curl -fsSL shedrackgodstime.github.io/gity/install | sh
+```
 
-# Quick install (Windows)
-irm https://raw.githubusercontent.com/shedrackgodstime/gity/main/install.ps1 | iex
+### Windows (PowerShell)
+```powershell
+iwr shedrackgodstime.github.io/gity/ps | iex
+```
 
-# Or build from source
+### Build from source
+```bash
 cargo build --release
 sudo cp target/release/gity /usr/local/bin/gity
 ```
@@ -33,13 +37,7 @@ sudo cp target/release/gity /usr/local/bin/gity
 ```bash
 # Add a GitHub account
 gity add work github
-# Enter your email when prompted
-
-# Add a Codeberg account
-gity add mycodeberg codeberg
-
-# Add GitLab
-gity add personal gitlab
+# Enter your email and optional passphrase when prompted
 ```
 
 This will:
@@ -61,7 +59,10 @@ The output shows the public key. Add it to:
 gity test work
 ```
 
-Should show: `✓ Connection successful!`
+**Note:** If you used a passphrase, you might need to add your key to the SSH agent first:
+```bash
+ssh-add ~/.ssh/id_ed25519_work
+```
 
 ### 4. Clone Using Your Account
 
@@ -79,12 +80,15 @@ git clone git@github-work:username/repo.git
 |---------|-------------|
 | `gity add <name> <platform>` | Add a new account (platform: github, gitlab, codeberg, bitbucket) |
 | `gity list` | List all accounts with usage instructions |
+| `gity clone [repo]` | Clone a repository and automatically set the local git config |
 | `gity test [name]` | Test SSH connection to verify key is working |
 | `gity remote add` | Interactive: create remote URL for a specific account |
 | `gity remote switch` | Switch the current repo `origin` remote to a different configured account |
 | `gity export` | Export config to JSON (for backup or moving to another PC) |
 | `gity import < file.json` | Import config from file or stdin |
-| `gity remove <name>` | Remove an account from gity config, with an optional prompt to delete its SSH key files |
+| `gity remove <name>` | Remove an account from gity config |
+| `gity audit` | Check file permissions and security of your setup |
+| `gity rotate <name>` | Regenerate SSH key for an account |
 
 ## Usage Examples
 
@@ -102,24 +106,6 @@ git clone git@github-work:company/project.git
 gity remote switch personal
 ```
 
-### Export/Import for another PC
-
-```bash
-# On PC 1 - export your setup
-gity export > gity-config.json
-
-# Copy SSH keys manually
-cp ~/.ssh/id_ed25519_work* /backup/
-cp ~/.ssh/id_ed25519_personal* /backup/
-
-# On PC 2 - import config
-gity import < gity-config.json
-
-# Copy SSH keys
-cp /backup/* ~/.ssh/
-chmod 600 ~/.ssh/id_ed25519_*
-```
-
 ## How It Works
 
 Gity manages a block in your SSH config like this:
@@ -129,14 +115,7 @@ Gity manages a block in your SSH config like this:
 Host github-work
   HostName github.com
   User git
-  IdentityFile ~/.ssh/id_ed25519_work
-  AddKeysToAgent yes
-  IdentitiesOnly yes
-
-Host codeberg-codeberg
-  HostName codeberg.org
-  User git
-  IdentityFile ~/.ssh/id_ed25519_codeberg
+  IdentityFile /home/user/.ssh/id_ed25519_work
   AddKeysToAgent yes
   IdentitiesOnly yes
 # <<< gity managed block <<<
@@ -148,25 +127,14 @@ Then you use `git@github-work:user/repo` instead of `git@github.com:user/repo` -
 
 - SSH keys are stored in `~/.ssh/` with 600 permissions
 - Each key is isolated per account
-- Gity updates only its managed block in `~/.ssh/config`
-- Use `gity test` to verify before pushing
+- Gity uses absolute paths in `~/.ssh/config` for reliability
+- Use `gity audit` to verify your security setup
 
 ## Requirements
 
-- Rust (to build)
 - OpenSSH
 - Git
-
-## Development
-
-Run the local quality gate before committing changes:
-
-```bash
-cargo fmt --all --check
-cargo test
-cargo check --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-```
+- Curl (for installation)
 
 ## License
 

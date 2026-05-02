@@ -25,10 +25,14 @@ pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
     managed_block.push('\n');
 
     for acc in accounts {
+        let key_full_path = ssh_dir.join(&acc.key_path);
         managed_block.push_str(&format!("Host {}\n", acc.host_alias));
         managed_block.push_str(&format!("  HostName {}\n", acc.platform.host()));
         managed_block.push_str("  User git\n");
-        managed_block.push_str(&format!("  IdentityFile ~/.ssh/{}\n", acc.key_path));
+        managed_block.push_str(&format!(
+            "  IdentityFile {}\n",
+            key_full_path.to_str().unwrap()
+        ));
         managed_block.push_str("  AddKeysToAgent yes\n");
         managed_block.push_str("  IdentitiesOnly yes\n\n");
     }

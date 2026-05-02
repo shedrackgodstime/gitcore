@@ -2,7 +2,15 @@
 # Create GitHub Release for gity
 
 REPO="shedrackgodstime/gity"
-VERSION="v1.0.0"
+# Get version from argument or Cargo.toml
+if [ -n "$1" ]; then
+    VERSION="$1"
+else
+    CARGO_VERSION=$(grep '^version =' Cargo.toml | cut -d '"' -f 2)
+    VERSION="v${CARGO_VERSION}"
+fi
+
+echo "Creating release for version: ${VERSION}"
 TOKEN="${GITHUB_TOKEN}"
 
 if [ -z "$TOKEN" ]; then
@@ -18,7 +26,7 @@ RELEASE_JSON=$(curl -s -X POST https://api.github.com/repos/${REPO}/releases \
   -d '{
     "tag_name": "'${VERSION}'",
     "name": "gity '${VERSION}'",
-    "body": "## Features\n- Multiple SSH keys management\n- Passphrase protection\n- File permissions (600) enforcement\n- Security audit command\n- Host key verification\n- Key rotation\n- Cross-platform installation scripts\n\n## Installation\n```bash\ncurl -fsSL gity.pages.dev/install | sh\n```",
+    "body": "## Features\n- Multiple SSH keys management\n- Passphrase protection\n- File permissions (600) enforcement\n- Security audit command\n- Host key verification\n- Key rotation\n- Cross-platform installation scripts\n\n## Installation\n```bash\ncurl -fsSL shedrackgodstime.github.io/gity/install | sh\n```",
     "draft": false,
     "prerelease": false
   }')
