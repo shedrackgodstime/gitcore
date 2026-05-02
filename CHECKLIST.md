@@ -6,9 +6,9 @@
 - [x] Avoid duplicate or conflicting host aliases
 
 ## Feature Completion
-- [x] Implement `gity export`
-- [x] Implement `gity import`
-- [x] Support importing from a file or stdin
+- [x] Implement `gity backup` (encrypted vault with keys)
+- [x] Implement `gity restore` (handles .gity vaults and legacy JSON)
+- [x] Support restoring from a file
 
 ## Behavior Fixes
 - [x] Align `remove` behavior with the README

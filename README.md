@@ -84,8 +84,8 @@ git clone git@github-work:username/repo.git
 | `gity test [name]` | Test SSH connection to verify key is working |
 | `gity remote add` | Interactive: create remote URL for a specific account |
 | `gity remote switch` | Switch the current repo `origin` remote to a different configured account |
-| `gity export` | Export config to JSON (for backup or moving to another PC) |
-| `gity import < file.json` | Import config from file or stdin |
+| `gity backup [file]` | Create an encrypted vault of config + SSH keys |
+| `gity restore [file]` | Restore config + SSH keys from a vault or JSON |
 | `gity remove <name>` | Remove an account from gity config |
 | `gity audit` | Check file permissions and security of your setup |
 | `gity rotate <name>` | Regenerate SSH key for an account |
@@ -104,6 +104,18 @@ git clone git@github-work:company/project.git
 ```bash
 # In your repo directory:
 gity remote switch personal
+```
+
+### Backup/Restore for another PC
+
+```bash
+# On PC 1 - backup your entire identity (config + keys)
+gity backup my_backup
+# Automatically creates 'my_backup.gity'
+
+# On PC 2 - restore everything in one go
+gity restore my_backup
+# Automatically looks for 'my_backup.gity'
 ```
 
 ## How It Works

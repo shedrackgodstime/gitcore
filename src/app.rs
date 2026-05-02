@@ -3,15 +3,18 @@ use crate::config::{load_config, save_config};
 use crate::git::{
     convert_to_host, ensure_git_repository, run_git, run_git_remote_add, set_git_config,
 };
-use crate::models::{is_valid_account_name, validate_accounts, Account, GityConfig, Platform};
+use crate::models::{
+    is_valid_account_name, validate_accounts, Account, GityConfig, Platform, Vault, VaultKey,
+};
 use crate::ssh::{
     check_host_key, delete_account_keys, generate_ssh_key, get_ssh_dir, provider_key_url,
     test_ssh_connection, update_ssh_config, HostKeyStatus,
 };
 use crate::ui::{confirm, print_result, prompt_input, select_account};
+use crate::vault::{decrypt_vault, encrypt_vault};
 use colored::Colorize;
 use std::fs;
-use std::io::{self, Read};
+use std::io::{self};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -577,46 +580,228 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
         },
 
-        Commands::Export => {
+        Commands::Backup { file } => {
             let config = load_config();
-            let content = serde_json::to_string_pretty(&config)?;
-            println!("{}", content);
-        }
+            if config.accounts.is_empty() {
+                println!("{}", "⚠ No accounts found to backup.".yellow());
+                return Ok(());
+            }
 
-        Commands::Import { file } => {
-            let input = if let Some(path) = file {
-                fs::read_to_string(path)?
-            } else {
-                let mut buffer = String::new();
-                io::stdin().read_to_string(&mut buffer)?;
-                buffer
+            println!();
+            println!("{}", "🔐 Gity Vault Backup".cyan().bold());
+            println!("{}", "─".repeat(40));
+            println!("This will create a secure, encrypted archive of your");
+            println!("Gity configuration and all associated private SSH keys.");
+            println!();
+
+            let password = rpassword::prompt_password("  🔑 Enter Master Password: ")?;
+            if password.is_empty() {
+                println!("\n{}", "✗ Password cannot be empty.".red());
+                return Ok(());
+            }
+
+            let confirm_password = rpassword::prompt_password("  🔑 Confirm Password:      ")?;
+            if password != confirm_password {
+                println!("\n{}", "✗ Passwords do not match.".red());
+                return Ok(());
+            }
+
+            println!("\n{} Collecting keys...", "📦".cyan());
+            let ssh_dir = get_ssh_dir();
+            let mut vault_keys = Vec::new();
+
+            for acc in &config.accounts {
+                let priv_path = ssh_dir.join(&acc.key_path);
+                let pub_path = ssh_dir.join(format!("{}.pub", acc.key_path));
+
+                if priv_path.exists() {
+                    let priv_content = fs::read_to_string(&priv_path)?;
+                    let pub_content = if pub_path.exists() {
+                        fs::read_to_string(&pub_path)?
+                    } else {
+                        String::new()
+                    };
+
+                    vault_keys.push(VaultKey {
+                        filename: acc.key_path.clone(),
+                        private_content: priv_content,
+                        public_content: pub_content,
+                    });
+                    println!("   {} {}", "•".green(), acc.key_path);
+                } else {
+                    println!("   {} Key not found: {}", "⚠".yellow(), acc.key_path);
+                }
+            }
+
+            let vault = Vault {
+                config,
+                keys: vault_keys,
             };
 
-            let config: GityConfig = match serde_json::from_str(&input) {
-                Ok(cfg) => cfg,
-                Err(err) => {
-                    eprintln!("{} Invalid JSON: {}", "✗".red(), err);
+            println!("{} Encrypting vault...", "🔒".cyan());
+            let encrypted_data = encrypt_vault(vault, &password)?;
+
+            let mut output_path = file.unwrap_or_else(|| "gity_backup.gity".to_string());
+            if !output_path.contains('.') {
+                output_path.push_str(".gity");
+            }
+            fs::write(&output_path, encrypted_data)?;
+
+            println!();
+            println!(
+                "{}",
+                "╔═══════════════════════════════════════════════════╗".green()
+            );
+            println!(
+                "║  {}  {}",
+                "✅".green(),
+                format!("Vault created: {}", output_path).bold()
+            );
+            println!(
+                "{}",
+                "╚═══════════════════════════════════════════════════╝".green()
+            );
+            println!(
+                "   {}",
+                "Keep this file and your password in a safe place!".yellow()
+            );
+            println!();
+        }
+
+        Commands::Restore { file } => {
+            let input_path = if let Some(path) = file {
+                path
+            } else {
+                // Smart Picker logic
+                let mut backups = Vec::new();
+                if let Ok(entries) = fs::read_dir(".") {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() {
+                            let name = path.file_name().unwrap_or_default().to_string_lossy();
+                            if name.ends_with(".gity") || name.ends_with(".json") {
+                                backups.push(name.to_string());
+                            }
+                        }
+                    }
+                }
+
+                if backups.is_empty() {
+                    prompt_input("Enter path to backup file: ")?
+                } else if backups.len() == 1 {
+                    println!(
+                        "{} Found backup file: {}",
+                        "📦".cyan(),
+                        backups[0].cyan().bold()
+                    );
+                    backups[0].clone()
+                } else {
+                    println!();
+                    match crate::ui::select_file(&backups, "Select a backup to restore:")? {
+                        Some(idx) => backups[idx].clone(),
+                        None => {
+                            println!("{}", "Cancelled".yellow());
+                            return Ok(());
+                        }
+                    }
+                }
+            };
+
+            let mut path = PathBuf::from(&input_path);
+
+            if !path.exists() && !input_path.contains('.') {
+                let with_ext = format!("{}.gity", input_path);
+                let path_with_ext = PathBuf::from(&with_ext);
+                if path_with_ext.exists() {
+                    path = path_with_ext;
+                }
+            }
+
+            if !path.exists() {
+                println!("\n{} File not found: {}", "✗".red(), path.display());
+                return Ok(());
+            }
+
+            let final_path_str = path.to_string_lossy().to_string();
+
+            if final_path_str.ends_with(".json") {
+                println!("\n{}", "[*] Importing legacy JSON config...".cyan());
+                let content = fs::read_to_string(&path)?;
+                let config: GityConfig = serde_json::from_str(&content)
+                    .map_err(|e| io::Error::other(format!("Invalid JSON: {}", e)))?;
+
+                validate_accounts(&config.accounts).map_err(io::Error::other)?;
+                save_config(&config)?;
+                update_ssh_config(&config.accounts)?;
+                println!(
+                    "{} Imported {} accounts successfully!",
+                    "✓".green().bold(),
+                    config.accounts.len()
+                );
+                return Ok(());
+            }
+
+            println!();
+            println!("{}", "🔐 Gity Vault Restore".cyan().bold());
+            println!("{}", "─".repeat(40));
+            let password = rpassword::prompt_password("  🔑 Enter Master Password to unlock: ")?;
+
+            let data = fs::read(&path)?;
+            let vault = match decrypt_vault(&data, &password) {
+                Ok(v) => v,
+                Err(e) => {
+                    println!("\n{} {}", "✗".red(), e);
                     return Ok(());
                 }
             };
 
-            if let Err(err) = validate_accounts(&config.accounts) {
-                eprintln!("{} Import rejected: {}", "✗".red(), err);
-                return Ok(());
+            println!("\n{} Unpacking vault...", "📦".cyan());
+            validate_accounts(&vault.config.accounts).map_err(io::Error::other)?;
+
+            save_config(&vault.config)?;
+
+            println!("{} Restoring SSH keys...", "🔑".cyan());
+            let ssh_dir = get_ssh_dir();
+            fs::create_dir_all(&ssh_dir)?;
+
+            for vkey in vault.keys {
+                let priv_path = ssh_dir.join(&vkey.filename);
+                let pub_path = ssh_dir.join(format!("{}.pub", vkey.filename));
+
+                fs::write(&priv_path, &vkey.private_content)?;
+                if !vkey.public_content.is_empty() {
+                    fs::write(&pub_path, &vkey.public_content)?;
+                }
+
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = fs::set_permissions(&priv_path, fs::Permissions::from_mode(0o600));
+                    if pub_path.exists() {
+                        let _ = fs::set_permissions(&pub_path, fs::Permissions::from_mode(0o644));
+                    }
+                }
+                println!("   {} {}", "•".green(), vkey.filename);
             }
 
-            save_config(&config)?;
-            update_ssh_config(&config.accounts)?;
+            update_ssh_config(&vault.config.accounts)?;
+
+            println!();
             println!(
-                "{} Imported {} account(s)",
-                "✓".green(),
-                config.accounts.len()
+                "{}",
+                "╔═══════════════════════════════════════════════════╗".green()
+            );
+            println!(
+                "║  {}  {}",
+                "✅".green(),
+                "Vault restored successfully!".bold()
             );
             println!(
                 "{}",
-                "  Note: import restores config only; SSH key files must exist separately."
-                    .yellow()
+                "╚═══════════════════════════════════════════════════╝".green()
             );
+            println!("   Restored: {} account(s)", vault.config.accounts.len());
+            println!();
         }
 
         Commands::Remove { name } => {

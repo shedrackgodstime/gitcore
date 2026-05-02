@@ -11,23 +11,19 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Add a new git account (creates SSH key + config)
-    /// Add a new git account (prompts if name/platform not given)
-    /// Usage: gity add [name] [platform]
+    /// Add a new git account
     Add {
         name: Option<String>,
         platform: Option<String>,
     },
 
-    /// List all configured accounts with usage instructions
+    /// List all configured accounts
     List,
 
-    /// Clone a repo using a specific account (auto-sets git config)
-    /// Usage: gity clone <repo_url>
+    /// Clone a repo using a specific account
     Clone { repo: Option<String> },
 
-    /// Test SSH connection (use host_alias like github-work)
-    /// Usage: gity test github-work
+    /// Test SSH connection to a provider
     Test { name: Option<String> },
 
     /// Manage git remotes for repositories
@@ -36,19 +32,19 @@ pub enum Commands {
         subcommand: RemoteCommands,
     },
 
-    /// Export configuration (for backup or moving to another PC)
-    Export,
+    /// Create an encrypted backup of all accounts and keys
+    Backup { file: Option<String> },
 
-    /// Import configuration from a file or stdin
-    Import { file: Option<String> },
+    /// Restore accounts and keys from a backup or JSON
+    Restore { file: Option<String> },
 
-    /// Remove an account from gity config (prompts if no name given)
+    /// Remove an account from Gity
     Remove { name: Option<String> },
 
-    /// Run security audit (check file permissions, key protection, etc.)
+    /// Run security audit on keys and permissions
     Audit,
 
-    /// Rotate SSH key for an account (regenerate and show new public key)
+    /// Rotate the SSH key for an account
     Rotate { name: Option<String> },
 }
 

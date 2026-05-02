@@ -5,6 +5,7 @@ mod git;
 mod models;
 mod ssh;
 mod ui;
+mod vault;
 
 use clap::Parser;
 use cli::Cli;

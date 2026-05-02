@@ -41,9 +41,22 @@ impl Platform {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct GityConfig {
     pub accounts: Vec<Account>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Vault {
+    pub config: GityConfig,
+    pub keys: Vec<VaultKey>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct VaultKey {
+    pub filename: String,
+    pub private_content: String,
+    pub public_content: String,
 }
 
 pub fn is_valid_account_name(name: &str) -> bool {

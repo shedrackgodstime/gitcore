@@ -36,6 +36,21 @@ pub fn select_account(accounts: &[Account], title: &str) -> io::Result<Option<us
     }
 }
 
+pub fn select_file(files: &[String], title: &str) -> io::Result<Option<usize>> {
+    println!("{}", title.cyan());
+    for (i, file) in files.iter().enumerate() {
+        println!("  [{}] {}", i + 1, file);
+    }
+
+    let input = prompt_input(&format!("\nSelect backup file (1-{}): ", files.len()))?;
+    let choice: usize = input.trim().parse().unwrap_or(0);
+    if choice == 0 || choice > files.len() {
+        Ok(None)
+    } else {
+        Ok(Some(choice - 1))
+    }
+}
+
 pub fn print_result(remote: &str, username: &str, email: &str) {
     println!();
     println!("{}", "✓ Done!".green().bold());
