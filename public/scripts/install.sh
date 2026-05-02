@@ -7,12 +7,12 @@ set -e
 show_help() {
     printf "gity installer - Manage multiple Git accounts safely\n\n"
     printf "Usage:\n"
-    printf "  curl -fsSL shedrackgodstime.github.io/gity/install | sh [OPTIONS]\n\n"
+    printf "  curl -fsSL https://shedrackgodstime.github.io/gity/install | sh [OPTIONS]\n\n"
     printf "Options:\n"
     printf "  help      Show this help message\n\n"
     printf "Examples:\n"
     printf "  # Install gity\n"
-    printf "  curl -fsSL shedrackgodstime.github.io/gity/install | sh\n"
+    printf "  curl -fsSL https://shedrackgodstime.github.io/gity/install | sh\n"
     exit 0
 }
 
@@ -104,5 +104,5 @@ else
     printf "Then restart your terminal or run: source $RC_FILE\n"
 fi
 
-printf "\n * Uninstall: \033[1mcurl -fsSL shedrackgodstime.github.io/gity/uninstall | sh\033[0m\n"
+printf "\n * Uninstall: \033[1mcurl -fsSL https://shedrackgodstime.github.io/gity/uninstall | sh\033[0m\n"
 printf "\n"

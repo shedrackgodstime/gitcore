@@ -7,11 +7,11 @@ if ($Help -or $args.Contains("help") -or $args.Contains("-h")) {
     Write-Host "gity installer - Manage multiple Git accounts safely" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  iwr shedrackgodstime.github.io/gity/ps | iex"
+    Write-Host "  iwr https://shedrackgodstime.github.io/gity/ps | iex"
     Write-Host ""
     Write-Host "Examples:"
     Write-Host "  # Install gity"
-    Write-Host "  iwr shedrackgodstime.github.io/gity/ps | iex"
+    Write-Host "  iwr https://shedrackgodstime.github.io/gity/ps | iex"
     exit
 }
 
@@ -72,5 +72,5 @@ Write-Host " * Help:          gity --help" -ForegroundColor White
 Write-Host ""
 Write-Host " * Restart your terminal to use gity from anywhere" -ForegroundColor Yellow
 Write-Host ""
-Write-Host " * Uninstall: iwr shedrackgodstime.github.io/gity/uninstall-ps | iex" -ForegroundColor Gray
+Write-Host " * Uninstall: iwr https://shedrackgodstime.github.io/gity/uninstall-ps | iex" -ForegroundColor Gray
 Write-Host ""

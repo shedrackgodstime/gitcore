@@ -26,7 +26,7 @@ RELEASE_JSON=$(curl -s -X POST https://api.github.com/repos/${REPO}/releases \
   -d '{
     "tag_name": "'${VERSION}'",
     "name": "gity '${VERSION}'",
-    "body": "## Features\n- Multiple SSH keys management\n- Passphrase protection\n- File permissions (600) enforcement\n- Security audit command\n- Host key verification\n- Key rotation\n- Cross-platform installation scripts\n\n## Installation\n```bash\ncurl -fsSL shedrackgodstime.github.io/gity/install | sh\n```",
+    "body": "## Features\n- Multiple SSH keys management\n- Passphrase protection\n- File permissions (600) enforcement\n- Security audit command\n- Host key verification\n- Key rotation\n- Cross-platform installation scripts\n\n## Installation\n```bash\ncurl -fsSL https://shedrackgodstime.github.io/gity/install | sh\n```",
     "draft": false,
     "prerelease": false
   }')

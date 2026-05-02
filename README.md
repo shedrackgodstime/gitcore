@@ -16,12 +16,12 @@ It manages only a dedicated `gity` block inside `~/.ssh/config`, leaving your ot
 
 ### Linux & macOS
 ```bash
-curl -fsSL shedrackgodstime.github.io/gity/install | sh
+curl -fsSL https://shedrackgodstime.github.io/gity/install | sh
 ```
 
 ### Windows (PowerShell)
 ```powershell
-iwr shedrackgodstime.github.io/gity/ps | iex
+iwr https://shedrackgodstime.github.io/gity/ps | iex
 ```
 
 ### Build from source
