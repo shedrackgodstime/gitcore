@@ -402,8 +402,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
                                 if detail.contains("Permission denied") {
                                     println!();
                                     println!("{}", "  💡 HINT: If your key has a passphrase, SSH might be failing because".yellow());
-                                    println!("{}", "     it cannot ask for it in batch mode.".yellow());
-                                    println!("{}", "     Try adding your key to the agent first:".yellow());
+                                    println!(
+                                        "{}",
+                                        "     it cannot ask for it in batch mode.".yellow()
+                                    );
+                                    println!(
+                                        "{}",
+                                        "     Try adding your key to the agent first:".yellow()
+                                    );
                                     println!("     ssh-add ~/.ssh/{}", acc.key_path);
                                 }
                             }
