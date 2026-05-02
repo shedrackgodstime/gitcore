@@ -32,7 +32,7 @@ $ReleaseUrl = "https://api.github.com/repos/shedrackgodstime/gity/releases/lates
 
 Write-Host "[*] Fetching latest release..."
 $Response = Invoke-RestMethod $ReleaseUrl
-$DownloadUrl = $Response.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -ExpandProperty browser_download_url
+$DownloadUrl = $Response.assets | Where-Object { $_.name -like "*${Target}*" } | Select-Object -First 1 -ExpandProperty browser_download_url
 
 if (-not $DownloadUrl) {
     Write-Error "[-] Could not find asset: $AssetName in $ReleaseUrl"

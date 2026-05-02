@@ -53,7 +53,7 @@ ASSET_NAME="gity-${TARGET}.tar.gz"
 RELEASE_URL="https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
 
 printf "[*] Fetching latest release...\n"
-DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep "browser_download_url" | grep "$ASSET_NAME" | cut -d '"' -f 4)
+DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep "browser_download_url" | grep "gity-${TARGET}" | head -n 1 | cut -d '"' -f 4)
 
 if [ -z "$DOWNLOAD_URL" ]; then
   printf "\033[0;31m[-] Error: Could not find asset $ASSET_NAME\033[0m\n"
