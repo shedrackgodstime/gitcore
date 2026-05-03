@@ -69,10 +69,16 @@ It also provides a secure, portable vault — a single encrypted file containing
 curl -fsSL https://shedrackgodstime.github.io/gity/install | sh
 ```
 
-### Windows (PowerShell)
+### Windows
 
+**PowerShell:**
 ```powershell
 iwr https://shedrackgodstime.github.io/gity/ps | iex
+```
+
+**Command Prompt (CMD):**
+```batch
+curl -sL https://shedrackgodstime.github.io/gity/cmd -o install.bat && install.bat && del install.bat
 ```
 
 ### Build from Source
