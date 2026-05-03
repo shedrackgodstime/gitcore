@@ -53,8 +53,18 @@ if (-not (Test-Path $DestDir)) {
 }
 
 Copy-Item (Join-Path $TempDir "gity.exe") $DestDir
-$env:Path += ";$DestDir"
-[System.Environment]::SetEnvironmentVariable("Path", $env:Path, "User")
+
+# Update PATH safely
+$UserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+if ($UserPath -notlike "*$DestDir*") {
+    if ([string]::IsNullOrWhiteSpace($UserPath)) {
+        $NewPath = $DestDir
+    } else {
+        $NewPath = "$UserPath;$DestDir"
+    }
+    [System.Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+    $env:Path += ";$DestDir"
+}
 
 Write-Host "[+] Installed gity to $DestDir" -ForegroundColor Green
 

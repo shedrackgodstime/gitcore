@@ -9,6 +9,14 @@ if (Test-Path $ExePath) {
     Remove-Item $ExePath -Force
     Write-Host "[+] Removed $ExePath" -ForegroundColor Green
     
+    # Remove from User PATH
+    $UserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    if ($UserPath -like "*$DestDir*") {
+        $NewPath = $UserPath -replace [regex]::Escape(";$DestDir"), "" -replace [regex]::Escape($DestDir), ""
+        [System.Environment]::SetEnvironmentVariable("Path", $NewPath, "User")
+        Write-Host "[+] Removed $DestDir from PATH" -ForegroundColor Green
+    }
+
     # Optional: remove directory if empty
     if ((Get-ChildItem $DestDir).Count -eq 0) {
         Remove-Item $DestDir -Force
