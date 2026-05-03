@@ -1,3 +1,0 @@
-@echo off
-echo [*] Launching gity installer...
-powershell -ExecutionPolicy Bypass -Command "iwr https://shedrackgodstime.github.io/gity/ps | iex"
