@@ -53,8 +53,8 @@ pub fn select_file(files: &[String], title: &str) -> io::Result<Option<usize>> {
 
 pub fn print_result(remote: &str, username: &str, email: &str) {
     println!();
-    println!("{}", "✓ Done!".green().bold());
+    println!("{}", "Success: Operation completed".green().bold());
     println!("  Remote:  {}", remote.green());
-    println!("  user:    {}", username);
-    println!("  email:   {}", email);
+    println!("  User:    {}", username);
+    println!("  Email:   {}", email);
 }

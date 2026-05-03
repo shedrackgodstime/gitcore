@@ -19,6 +19,7 @@ This document serves as the foundational law for all development on the Gity pro
 
 ## 4. UI & UX Consistency
 - **Verb-Oriented Commands**: All subcommands must be active, simple verbs (e.g., `add`, `list`, `backup`, `restore`).
+- **Mature Output**: Avoid decorative ASCII boxes, emojis, or non-standard symbols. Use standard text-based indicators like `[v]`, `[x]`, `[!]`, or `[*]`.
 - **Informative Feedback**: Use the `colored` crate to provide clear visual cues (green for success, red for errors, yellow for hints). Always provide a "next step" hint when a command fails.
 
 ## 5. Security First

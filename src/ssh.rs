@@ -76,7 +76,7 @@ pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
         .args(["600", config_path.to_str().unwrap()])
         .output();
 
-    println!("{}", "✓ SSH config updated".green());
+    println!("{}", "Success: SSH config updated".green());
     Ok(())
 }
 
@@ -87,7 +87,7 @@ pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Re
     if key_full.exists() {
         println!("{}", "Key already exists, using existing key".yellow());
     } else {
-        println!("{}", "Generating SSH key...".cyan());
+        println!("{}", "[*] Generating SSH key...".cyan());
         run_command(
             "ssh-keygen",
             &[
@@ -111,11 +111,14 @@ pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Re
             .args(["644", pub_key_path.to_str().unwrap()])
             .output();
 
-        println!("{}", "✓ SSH key generated".green());
+        println!("{}", "Success: SSH key generated".green());
         if passphrase.is_empty() {
-            println!("{}", "  ⚠ No passphrase - key is not protected".yellow());
+            println!(
+                "{}",
+                "Warning: No passphrase - key is not protected".yellow()
+            );
         } else {
-            println!("{}", "  ✓ Key is protected with passphrase".green());
+            println!("{}", "Success: Key is protected with passphrase".green());
         }
     }
 

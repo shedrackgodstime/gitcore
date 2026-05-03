@@ -66,18 +66,18 @@ pub fn run(cli: Cli) -> io::Result<()> {
             if !is_valid_account_name(&name) {
                 eprintln!(
                     "{} Account name must use only letters, numbers, '-' or '_'.",
-                    "✗".red()
+                    "[x]".red()
                 );
                 return Ok(());
             }
 
             if username.is_empty() {
-                eprintln!("{}", "✗ Username cannot be empty.".red());
+                eprintln!("{}", "[x] Username cannot be empty.".red());
                 return Ok(());
             }
 
             if email.is_empty() {
-                eprintln!("{}", "✗ Email cannot be empty.".red());
+                eprintln!("{}", "[x] Email cannot be empty.".red());
                 return Ok(());
             }
 
@@ -88,7 +88,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             {
                 eprintln!(
                     "{} Account '{}' already exists. Use 'gity remove {}' first.",
-                    "✗".red(),
+                    "[x]".red(),
                     name,
                     name
                 );
@@ -102,7 +102,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             {
                 eprintln!(
                     "{} Host alias '{}' already exists. Choose a different account name.",
-                    "✗".red(),
+                    "[x]".red(),
                     host_alias
                 );
                 return Ok(());
@@ -123,44 +123,28 @@ pub fn run(cli: Cli) -> io::Result<()> {
             save_config(&config)?;
             update_ssh_config(&config.accounts)?;
 
-            println!();
-            println!(
-                "{}",
-                "┌─────────────────────────────────────────────────┐".cyan()
-            );
-            println!(
-                "{}",
-                "│           Account Added Successfully!           │".cyan()
-            );
-            println!(
-                "{}",
-                "└─────────────────────────────────────────────────┘".cyan()
-            );
+            println!("\n{}", "Success: Account added successfully".green().bold());
             println!();
             println!("  Name:     {}", name.bold());
             println!("  Platform: {:?}", platform);
             println!("  Use:      git clone git@{}:user/repo.git", host_alias);
             println!();
-            println!("{}", "─".repeat(51));
+            println!("{}", "Next steps:".yellow().bold());
             println!();
-            println!("{}", "  1. ADD SSH KEY TO YOUR PLATFORM".yellow().bold());
+            println!("  1. Add your SSH public key to your platform:");
+            println!("     {}", pub_key.cyan());
             println!();
-            println!("  {}", pub_key);
+            println!("     Open: {}", provider_key_url(&platform).cyan());
             println!();
-            println!("  Open: {}", provider_key_url(&platform).cyan());
+            println!("  2. Test your connection:");
+            println!("     Run: {}", format!("gity test {}", host_alias).cyan());
             println!();
-            println!("{}", "─".repeat(51));
-            println!();
-            println!("{}", "  2. TEST CONNECTION".yellow().bold());
-            println!();
-            println!("  Run: {}", format!("gity test {}", host_alias).cyan());
-            println!();
-            println!("{}", "─".repeat(51));
-            println!();
-            println!("{}", "  3. USAGE".yellow().bold());
-            println!();
-            println!("  Clone:  git clone git@{}:username/repo.git", host_alias);
-            println!("  Remote: gity remote add");
+            println!("  3. Start using it:");
+            println!(
+                "     Clone:  git clone git@{}:username/repo.git",
+                host_alias
+            );
+            println!("     Remote: gity remote add");
             println!();
         }
 
@@ -174,25 +158,16 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 return Ok(());
             }
 
-            println!(
-                "{}",
-                "╔═══════════════════════════════════════════════════╗".cyan()
-            );
-            println!(
-                "{}",
-                "║           Configured Git Accounts                 ║".cyan()
-            );
-            println!(
-                "{}",
-                "╚═══════════════════════════════════════════════════╝".cyan()
-            );
+            println!();
+            println!("{}", "Configured Git Accounts".cyan().bold());
+            println!("{}", "=".repeat(23).cyan());
             println!();
 
             for (i, acc) in config.accounts.iter().enumerate() {
-                println!("{} [{}] {}", "●".green(), i + 1, acc.name.bold());
+                println!("[{}] {}", i + 1, acc.name.bold());
                 println!("   Platform: {:?}", acc.platform);
                 println!("   Host:     {}", acc.host_alias);
-                println!("   Key:      ~/.ssh/{}", acc.key_path);
+                println!("   Key:      {}", acc.key_path);
                 println!("   User:     {}", acc.username);
                 println!("   Email:    {}", acc.email);
                 println!(
@@ -249,11 +224,11 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 if clone_dir.exists() {
                     if !ensure_git_repository(&clone_dir) {
-                        println!("{}", "⚠ Directory exists but not a git repository.".red());
+                        println!("{}", "[!] Directory exists but not a git repository.".red());
                         return Ok(());
                     }
                 } else if let Err(err) = run_git(&["clone", &converted]) {
-                    println!("{}", "✗ Clone failed".red());
+                    println!("{}", "[x] Clone failed".red());
                     println!("   {}", err);
                     return Ok(());
                 }
@@ -262,12 +237,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 if let Err(err) = set_git_config(&acc.username, &acc.email) {
                     println!(
                         "{}",
-                        "✗ Clone succeeded, but git config update failed".red()
+                        "[x] Clone succeeded, but git config update failed".red()
                     );
                     println!("   {}", err);
                     return Ok(());
                 }
-                println!("{}", "✓ Cloned with git config:".green());
+                println!("{}", "[v] Cloned with git config:".green());
                 println!("  user.name  = {}", acc.username);
                 println!("  user.email = {}", acc.email);
                 return Ok(());
@@ -302,7 +277,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
             if clone_dir.exists() {
                 if !ensure_git_repository(&clone_dir) {
-                    println!("{}", "⚠ Directory exists but not a git repository.".red());
+                    println!("{}", "[!] Directory exists but not a git repository.".red());
                     return Ok(());
                 }
                 println!(
@@ -310,14 +285,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     "Directory already exists. Using existing repo.".yellow()
                 );
                 if let Err(err) = run_git_remote_add(&converted) {
-                    println!("{}", "✗ Failed to configure origin remote".red());
+                    println!("{}", "[x] Failed to configure origin remote".red());
                     println!("   {}", err);
                     return Ok(());
                 }
             } else {
                 println!("{}", "Running: git clone".cyan());
                 if let Err(err) = run_git(&["clone", &converted]) {
-                    println!("{}", "✗ Clone failed".red());
+                    println!("{}", "[x] Clone failed".red());
                     println!("   {}", err);
                     return Ok(());
                 }
@@ -334,12 +309,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
             if let Err(err) = set_git_config(&acc.username, &acc.email) {
                 println!(
                     "{}",
-                    "✗ Clone succeeded, but git config update failed".red()
+                    "[x] Clone succeeded, but git config update failed".red()
                 );
                 println!("   {}", err);
                 return Ok(());
             }
-            println!("{}", "✓ Cloned and git config set:".green());
+            println!("{}", "[v] Cloned and git config set:".green());
             println!("  user.name  = {}", acc.username);
             println!("  user.email = {}", acc.email);
         }
@@ -372,16 +347,16 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 let host_status = check_host_key(acc.platform.host());
                 match host_status {
                     HostKeyStatus::Known => {
-                        println!("{}", "  ✓ Host key is known".green());
+                        println!("{}", "  [v] Host key is known".green());
                     }
                     HostKeyStatus::New => {
                         println!(
                             "{}",
-                            "  ⚠ New host key - will be added to known_hosts".yellow()
+                            "  [!] New host key - will be added to known_hosts".yellow()
                         );
                     }
                     HostKeyStatus::Unknown => {
-                        println!("{}", "  ⚠ No known_hosts file - will be created".yellow());
+                        println!("{}", "  [!] No known_hosts file - will be created".yellow());
                     }
                 }
 
@@ -391,12 +366,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     Ok(out) => {
                         let stderr = String::from_utf8_lossy(&out.stderr);
                         if stderr.contains("successfully authenticated") || stderr.contains("Hi") {
-                            println!("{}", "✓ Connection successful!".green());
+                            println!("{}", "[v] Connection successful!".green());
                             println!("   {}", stderr.trim());
                         } else if out.status.success() {
-                            println!("{}", "✓ Connected (but no shell access)".green());
+                            println!("{}", "[v] Connected (but no shell access)".green());
                         } else {
-                            println!("{}", "✗ Connection failed".red());
+                            println!("{}", "[x] Connection failed".red());
                             let detail = stderr.trim();
                             if detail.is_empty() {
                                 println!("   exit status: {}", out.status);
@@ -404,7 +379,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                                 println!("   {}", detail);
                                 if detail.contains("Permission denied") {
                                     println!();
-                                    println!("{}", "  💡 HINT: If your key has a passphrase, SSH might be failing because".yellow());
+                                    println!("{}", "  HINT: HINT: If your key has a passphrase, SSH might be failing because".yellow());
                                     println!(
                                         "{}",
                                         "     it cannot ask for it in batch mode.".yellow()
@@ -419,7 +394,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         }
                     }
                     Err(e) => {
-                        println!("{} {}", "✗ Error:".red(), e);
+                        println!("{} {}", "[x] Error:".red(), e);
                     }
                 }
             }
@@ -436,7 +411,10 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         .map(|o| o.status.success())
                         .unwrap_or(false)
                 {
-                    println!("{}", "⚠ Not a git repository. Run 'git init' first.".red());
+                    println!(
+                        "{}",
+                        "[!] Not a git repository. Run 'git init' first.".red()
+                    );
                     return Ok(());
                 }
 
@@ -470,12 +448,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 if let Some((url, acc)) = preloaded {
                     let converted = convert_to_host(&url, &acc.host_alias);
                     if let Err(err) = set_git_config(&acc.username, &acc.email) {
-                        println!("{}", "✗ Failed to set git config".red());
+                        println!("{}", "[x] Failed to set git config".red());
                         println!("   {}", err);
                         return Ok(());
                     }
                     if let Err(err) = run_git_remote_add(&converted) {
-                        println!("{}", "✗ Failed to configure origin remote".red());
+                        println!("{}", "[x] Failed to configure origin remote".red());
                         println!("   {}", err);
                         return Ok(());
                     }
@@ -497,12 +475,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 let converted = convert_to_host(&final_repo, &selected_acc.host_alias);
                 if let Err(err) = set_git_config(&selected_acc.username, &selected_acc.email) {
-                    println!("{}", "✗ Failed to set git config".red());
+                    println!("{}", "[x] Failed to set git config".red());
                     println!("   {}", err);
                     return Ok(());
                 }
                 if let Err(err) = run_git_remote_add(&converted) {
-                    println!("{}", "✗ Failed to configure origin remote".red());
+                    println!("{}", "[x] Failed to configure origin remote".red());
                     println!("   {}", err);
                     return Ok(());
                 }
@@ -519,7 +497,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         .map(|o| o.status.success())
                         .unwrap_or(false)
                 {
-                    println!("{}", "⚠ Not a git repository.".red());
+                    println!("{}", "[!] Not a git repository.".red());
                     return Ok(());
                 }
 
@@ -551,14 +529,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
                             String::from_utf8_lossy(&out.stdout).trim().to_string()
                         }
                         _ => {
-                            println!("{}", "✗ Could not read origin remote".red());
+                            println!("{}", "[x] Could not read origin remote".red());
                             return Ok(());
                         }
                     };
 
                     let converted = convert_to_host(&current_remote, &acc.host_alias);
                     if let Err(err) = run_git(&["remote", "set-url", "origin", &converted]) {
-                        println!("{}", "✗ Failed to switch remote".red());
+                        println!("{}", "[x] Failed to switch remote".red());
                         println!("   {}", err);
                         return Ok(());
                     }
@@ -566,13 +544,13 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     if let Err(err) = set_git_config(&acc.username, &acc.email) {
                         println!(
                             "{}",
-                            "✗ Remote switched, but git config update failed".red()
+                            "[x] Remote switched, but git config update failed".red()
                         );
                         println!("   {}", err);
                         return Ok(());
                     }
 
-                    println!("{}", "✓ Remote switched".green());
+                    println!("{}", "[v] Remote switched".green());
                     println!("  origin     = {}", converted);
                     println!("  user.name  = {}", acc.username);
                     println!("  user.email = {}", acc.email);
@@ -583,30 +561,30 @@ pub fn run(cli: Cli) -> io::Result<()> {
         Commands::Backup { file } => {
             let config = load_config();
             if config.accounts.is_empty() {
-                println!("{}", "⚠ No accounts found to backup.".yellow());
+                println!("{}", "Error: No accounts found to backup.".red());
                 return Ok(());
             }
 
             println!();
-            println!("{}", "🔐 Gity Vault Backup".cyan().bold());
-            println!("{}", "─".repeat(40));
-            println!("This will create a secure, encrypted archive of your");
-            println!("Gity configuration and all associated private SSH keys.");
+            println!("{}", "Gity Vault Backup".cyan().bold());
+            println!("{}", "=".repeat(17).cyan());
+            println!("This will create a secure, encrypted archive of your Gity");
+            println!("configuration and all associated private SSH keys.");
             println!();
 
-            let password = rpassword::prompt_password("  🔑 Enter Master Password: ")?;
+            let password = rpassword::prompt_password("  Master Password: ")?;
             if password.is_empty() {
-                println!("\n{}", "✗ Password cannot be empty.".red());
+                println!("{}", "Error: Password cannot be empty.".red());
                 return Ok(());
             }
 
-            let confirm_password = rpassword::prompt_password("  🔑 Confirm Password:      ")?;
+            let confirm_password = rpassword::prompt_password("  Confirm Password: ")?;
             if password != confirm_password {
-                println!("\n{}", "✗ Passwords do not match.".red());
+                println!("{}", "Error: Passwords do not match.".red());
                 return Ok(());
             }
 
-            println!("\n{} Collecting keys...", "📦".cyan());
+            println!("\n[*] Collecting keys...");
             let ssh_dir = get_ssh_dir();
             let mut vault_keys = Vec::new();
 
@@ -627,9 +605,9 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         private_content: priv_content,
                         public_content: pub_content,
                     });
-                    println!("   {} {}", "•".green(), acc.key_path);
+                    println!("  + {}", acc.key_path);
                 } else {
-                    println!("   {} Key not found: {}", "⚠".yellow(), acc.key_path);
+                    println!("  ! Key not found: {}", acc.key_path.yellow());
                 }
             }
 
@@ -638,7 +616,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 keys: vault_keys,
             };
 
-            println!("{} Encrypting vault...", "🔒".cyan());
+            println!("[*] Encrypting vault...");
             let encrypted_data = encrypt_vault(vault, &password)?;
 
             let mut output_path = file.unwrap_or_else(|| "gity_backup.gity".to_string());
@@ -647,24 +625,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
             fs::write(&output_path, encrypted_data)?;
 
+            let full_path = std::env::current_dir()?.join(&output_path);
+
             println!();
-            println!(
-                "{}",
-                "╔═══════════════════════════════════════════════════╗".green()
-            );
-            println!(
-                "║  {}  {}",
-                "✅".green(),
-                format!("Vault created: {}", output_path).bold()
-            );
-            println!(
-                "{}",
-                "╚═══════════════════════════════════════════════════╝".green()
-            );
-            println!(
-                "   {}",
-                "Keep this file and your password in a safe place!".yellow()
-            );
+            println!("{}", "Success: Vault created".green().bold());
+            println!("Path: {}", full_path.display());
+            println!("Note: Keep this file and your password in a safe place.");
             println!();
         }
 
@@ -689,11 +655,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 if backups.is_empty() {
                     prompt_input("Enter path to backup file: ")?
                 } else if backups.len() == 1 {
-                    println!(
-                        "{} Found backup file: {}",
-                        "📦".cyan(),
-                        backups[0].cyan().bold()
-                    );
+                    println!("[*] Found backup file: {}", backups[0].cyan().bold());
                     backups[0].clone()
                 } else {
                     println!();
@@ -718,14 +680,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
 
             if !path.exists() {
-                println!("\n{} File not found: {}", "✗".red(), path.display());
+                println!("\nError: File not found: {}", path.display());
                 return Ok(());
             }
 
             let final_path_str = path.to_string_lossy().to_string();
 
             if final_path_str.ends_with(".json") {
-                println!("\n{}", "[*] Importing legacy JSON config...".cyan());
+                println!("\n[*] Importing legacy JSON config...");
                 let content = fs::read_to_string(&path)?;
                 let config: GityConfig = serde_json::from_str(&content)
                     .map_err(|e| io::Error::other(format!("Invalid JSON: {}", e)))?;
@@ -735,32 +697,32 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 update_ssh_config(&config.accounts)?;
                 println!(
                     "{} Imported {} accounts successfully!",
-                    "✓".green().bold(),
+                    "[v]".green().bold(),
                     config.accounts.len()
                 );
                 return Ok(());
             }
 
             println!();
-            println!("{}", "🔐 Gity Vault Restore".cyan().bold());
-            println!("{}", "─".repeat(40));
-            let password = rpassword::prompt_password("  🔑 Enter Master Password to unlock: ")?;
+            println!("{}", "Gity Vault Restore".cyan().bold());
+            println!("{}", "=".repeat(18).cyan());
+            let password = rpassword::prompt_password("  Master Password: ")?;
 
             let data = fs::read(&path)?;
             let vault = match decrypt_vault(&data, &password) {
                 Ok(v) => v,
                 Err(e) => {
-                    println!("\n{} {}", "✗".red(), e);
+                    println!("\nError: {}", e);
                     return Ok(());
                 }
             };
 
-            println!("\n{} Unpacking vault...", "📦".cyan());
+            println!("\n[*] Unpacking vault...");
             validate_accounts(&vault.config.accounts).map_err(io::Error::other)?;
 
             save_config(&vault.config)?;
 
-            println!("{} Restoring SSH keys...", "🔑".cyan());
+            println!("[*] Restoring SSH keys...");
             let ssh_dir = get_ssh_dir();
             fs::create_dir_all(&ssh_dir)?;
 
@@ -781,26 +743,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         let _ = fs::set_permissions(&pub_path, fs::Permissions::from_mode(0o644));
                     }
                 }
-                println!("   {} {}", "•".green(), vkey.filename);
+                println!("  + {}", vkey.filename);
             }
 
             update_ssh_config(&vault.config.accounts)?;
 
             println!();
-            println!(
-                "{}",
-                "╔═══════════════════════════════════════════════════╗".green()
-            );
-            println!(
-                "║  {}  {}",
-                "✅".green(),
-                "Vault restored successfully!".bold()
-            );
-            println!(
-                "{}",
-                "╚═══════════════════════════════════════════════════╝".green()
-            );
-            println!("   Restored: {} account(s)", vault.config.accounts.len());
+            println!("{}", "Success: Vault restored successfully".green().bold());
+            println!("Restored: {} account(s)", vault.config.accounts.len());
             println!();
         }
 
@@ -830,7 +780,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             if let Some(n) = target_name {
                 if !confirm(&format!(
                     "{} Are you sure? This will remove the account from gity [y/N]: ",
-                    "⚠".yellow()
+                    "[!]".yellow()
                 ))? {
                     println!("{}", "Cancelled".yellow());
                     return Ok(());
@@ -840,7 +790,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 save_config(&config)?;
                 update_ssh_config(&config.accounts)?;
 
-                println!("{}", format!("✓ Account '{}' removed", n).green());
+                println!("{}", format!("[v] Account '{}' removed", n).green());
                 if confirm("Delete SSH key files too? [y/N]: ")? {
                     match delete_account_keys(&n) {
                         Ok(paths) if paths.is_empty() => {
@@ -865,8 +815,8 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
         Commands::Audit => {
             println!();
-            println!("{}", "🔍 Security Audit".cyan().bold());
-            println!("{}", "═".repeat(40));
+            println!("{}", "Security Audit".cyan().bold());
+            println!("{}", "=".repeat(14).cyan());
             println!();
 
             let ssh_dir = get_ssh_dir();
@@ -875,7 +825,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 .join("gity")
                 .join("config.json");
 
-            println!("{}", "📁 SSH Keys".yellow().bold());
+            println!("{}", "SSH Keys".yellow().bold());
             let config = load_config();
             for acc in &config.accounts {
                 let key_path = ssh_dir.join(&acc.key_path);
@@ -884,58 +834,58 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 let key_perms = if key_path.exists() {
                     get_permissions(&key_path)
                 } else {
-                    println!("  ⚠ {} - key file not found", acc.key_path);
+                    println!("  [!] {} - key file not found", acc.key_path);
                     continue;
                 };
 
                 if key_perms == 0o600 {
-                    println!("  ✓ {} - OK ({:o})", acc.key_path, key_perms);
+                    println!("  [v] {} - OK ({:o})", acc.key_path, key_perms);
                 } else {
                     println!(
-                        "  ✗ {} - WRONG ({:o}) should be 600",
+                        "  [x] {} - WRONG ({:o}) should be 600",
                         acc.key_path, key_perms
                     );
                 }
 
                 if pub_key_path.exists() {
                     let pub_perms = get_permissions(&pub_key_path);
-                    println!("    {} (pub) - {:o}", acc.key_path, pub_perms);
+                    println!("      {} (pub) - {:o}", acc.key_path, pub_perms);
                 }
             }
             println!();
 
-            println!("{}", "📁 SSH Config".yellow().bold());
+            println!("{}", "SSH Config".yellow().bold());
             let ssh_config_path = ssh_dir.join("config");
             if ssh_config_path.exists() {
                 let perms = get_permissions(&ssh_config_path);
                 if perms == 0o600 {
-                    println!("  ✓ config - OK ({:o})", perms);
+                    println!("  [v] config - OK ({:o})", perms);
                 } else {
-                    println!("  ✗ config - WRONG ({:o}) should be 600", perms);
+                    println!("  [x] config - WRONG ({:o}) should be 600", perms);
                 }
             } else {
-                println!("  ⚠ config - not found");
+                println!("  [!] config - not found");
             }
             println!();
 
-            println!("{}", "📁 Gity Config".yellow().bold());
+            println!("{}", "Gity Config".yellow().bold());
             if config_path.exists() {
                 let perms = get_permissions(&config_path);
                 if perms == 0o600 {
-                    println!("  ✓ config.json - OK ({:o})", perms);
+                    println!("  [v] config.json - OK ({:o})", perms);
                 } else {
-                    println!("  ✗ config.json - WRONG ({:o}) should be 600", perms);
+                    println!("  [x] config.json - WRONG ({:o}) should be 600", perms);
                 }
             } else {
-                println!("  ⚠ config.json - not found");
+                println!("  [!] config.json - not found");
             }
             println!();
 
             let issues = check_issues(&config, &ssh_dir);
             if issues.is_empty() {
-                println!("{}", "✅ All checks passed!".green());
+                println!("{}", "All checks passed successfully.".green());
             } else {
-                println!("{}", "⚠ Issues found:".yellow());
+                println!("{}", "Issues found:".red());
                 for issue in &issues {
                     println!("  - {}", issue);
                 }
@@ -945,7 +895,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
         Commands::Rotate { name } => {
             let config = load_config();
             if config.accounts.is_empty() {
-                println!("{}", "No accounts to rotate".red());
+                println!("{}", "Error: No accounts to rotate".red());
                 return Ok(());
             }
 
@@ -971,13 +921,13 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 if !confirm(&format!(
                     "{} This will delete the old SSH key and generate a new one. Continue? [y/N]: ",
-                    "⚠".yellow()
+                    "Warning:".yellow()
                 ))? {
                     println!("{}", "Cancelled".yellow());
                     return Ok(());
                 }
 
-                println!("{}", "Generating new SSH key...".cyan());
+                println!("{}", "[*] Generating new SSH key...".cyan());
 
                 let passphrase = prompt_input(
                     "Enter passphrase for new SSH key (leave empty for no protection): ",
@@ -986,45 +936,28 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 match delete_account_keys(&n) {
                     Ok(paths) => {
                         for path in paths {
-                            println!("  Deleted: {}", path.display());
+                            println!("  Removed: {}", path.display());
                         }
                     }
                     Err(e) => {
-                        println!("{} Failed to delete old key: {}", "✗".red(), e);
+                        println!("Error: Failed to delete old key: {}", e);
                     }
                 }
 
                 let pub_key = generate_ssh_key(&acc.key_path, &acc.email, &passphrase)?;
 
+                println!("\n{}", "Success: Key rotated successfully".green().bold());
                 println!();
                 println!(
                     "{}",
-                    "┌─────────────────────────────────────────────────┐".cyan()
-                );
-                println!(
-                    "{}",
-                    "│           Key Rotated Successfully!              │".cyan()
-                );
-                println!(
-                    "{}",
-                    "└─────────────────────────────────────────────────┘".cyan()
+                    "Important: Update your old SSH key on the platform:".yellow()
                 );
                 println!();
-                println!(
-                    "{}",
-                    "  IMPORTANT: Update your old SSH key on the platform:"
-                        .yellow()
-                        .bold()
-                );
-                println!();
-                println!("  {}", pub_key);
+                println!("  {}", pub_key.cyan());
                 println!();
                 println!("  Open: {}", provider_key_url(&acc.platform).cyan());
                 println!();
-                println!(
-                    "{}",
-                    "  The old key has been revoked. Only the new key works now.".yellow()
-                );
+                println!("The old key has been revoked. Only the new key works now.");
             }
         }
     }
