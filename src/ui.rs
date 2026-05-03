@@ -20,55 +20,39 @@ pub fn prompt_password(prompt: &str) -> io::Result<String> {
     Ok(password)
 }
 
-pub fn select_account(accounts: &[Account], title: &str) -> io::Result<Option<usize>> {
+fn select_from_list(items: &[String], title: &str, prompt: &str) -> io::Result<Option<usize>> {
     println!("{}", title.cyan());
-    for (i, acc) in accounts.iter().enumerate() {
-        println!(
-            "  [{}] {} ({} - {:?})",
-            i + 1,
-            acc.name,
-            acc.username,
-            acc.platform
-        );
+    for (i, item) in items.iter().enumerate() {
+        println!("  [{}] {}", i + 1, item);
     }
 
-    let input = prompt_input(&format!("\nEnter number (1-{}): ", accounts.len()))?;
+    let input = prompt_input(&format!("\n{} (1-{}): ", prompt, items.len()))?;
     let choice: usize = input.trim().parse().unwrap_or(0);
-    if choice == 0 || choice > accounts.len() {
+    if choice == 0 || choice > items.len() {
         Ok(None)
     } else {
         Ok(Some(choice - 1))
     }
+}
+
+pub fn select_account(accounts: &[Account], title: &str) -> io::Result<Option<usize>> {
+    let items: Vec<String> = accounts
+        .iter()
+        .map(|acc| format!("{} ({} - {:?})", acc.name, acc.username, acc.platform))
+        .collect();
+    select_from_list(&items, title, "Select number")
 }
 
 pub fn select_file(files: &[String], title: &str) -> io::Result<Option<usize>> {
-    println!("{}", title.cyan());
-    for (i, file) in files.iter().enumerate() {
-        println!("  [{}] {}", i + 1, file);
-    }
-
-    let input = prompt_input(&format!("\nSelect backup file (1-{}): ", files.len()))?;
-    let choice: usize = input.trim().parse().unwrap_or(0);
-    if choice == 0 || choice > files.len() {
-        Ok(None)
-    } else {
-        Ok(Some(choice - 1))
-    }
+    select_from_list(files, title, "Select backup file")
 }
 
 pub fn select_gpg_key(keys: &[crate::gpg::GpgKey], title: &str) -> io::Result<Option<usize>> {
-    println!("{}", title.cyan());
-    for (i, key) in keys.iter().enumerate() {
-        println!("  [{}] {} ({}) - {}", i + 1, key.name, key.email, key.id);
-    }
-
-    let input = prompt_input(&format!("\nSelect GPG key (1-{}): ", keys.len()))?;
-    let choice: usize = input.trim().parse().unwrap_or(0);
-    if choice == 0 || choice > keys.len() {
-        Ok(None)
-    } else {
-        Ok(Some(choice - 1))
-    }
+    let items: Vec<String> = keys
+        .iter()
+        .map(|key| format!("{} ({}) - {}", key.name, key.email, key.id))
+        .collect();
+    select_from_list(&items, title, "Select GPG key")
 }
 
 pub fn print_result(remote: &str, username: &str, email: &str) {

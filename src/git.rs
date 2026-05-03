@@ -34,64 +34,52 @@ pub fn ensure_git_repository(path: &Path) -> bool {
 }
 
 pub fn convert_to_host(url: &str, host_alias: &str) -> String {
-    let url = url.trim().trim_end_matches(".git").to_string();
+    let url = url.trim().trim_end_matches(".git");
 
     if let Some((_host, rest)) = url.strip_prefix("git@").and_then(|p| p.split_once(':')) {
-        return format!("{}:{}", host_alias, rest);
+        return format!("{host_alias}:{rest}");
     }
 
-    if url.starts_with("https://") || url.starts_with("http://") {
-        let path = url
-            .strip_prefix("https://")
-            .or(url.strip_prefix("http://"))
-            .unwrap_or(&url);
+    if let Some(path) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    {
         let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-        if parts.len() >= 2
-            && (parts[0].contains("github.com")
-                || parts[0].contains("gitlab.com")
-                || parts[0].contains("codeberg.org")
-                || parts[0].contains("bitbucket.org"))
-        {
+        if parts.len() >= 2 && is_known_provider(parts[0]) {
             let repo = parts[1..].join("/");
-            return format!("{}:{}", host_alias, repo);
+            return format!("{host_alias}:{repo}");
         }
     }
 
     if let Some(rest) = url.strip_prefix("ssh://") {
         let parts: Vec<&str> = rest.split('/').collect();
-        if parts.len() >= 2
-            && (parts[0].contains("github.com")
-                || parts[0].contains("gitlab.com")
-                || parts[0].contains("codeberg.org")
-                || parts[0].contains("bitbucket.org"))
-        {
+        if parts.len() >= 2 && is_known_provider(parts[0]) {
             let repo = parts[1..].join("/");
-            return format!("{}:{}", host_alias, repo);
+            return format!("{host_alias}:{repo}");
         }
     }
 
-    if !url.contains('@') && !url.starts_with("http") {
-        if url.contains("github.com/")
-            || url.contains("gitlab.com/")
-            || url.contains("codeberg.org/")
-            || url.contains("bitbucket.org/")
+    if !url.contains('@') && !url.contains("://") {
+        let parts: Vec<&str> = url.split('/').collect();
+        if let Some(i) = parts
+            .iter()
+            .position(|p| is_known_provider(p))
+            .filter(|&i| i + 1 < parts.len())
         {
-            let parts: Vec<&str> = url.split('/').collect();
-            let idx = parts.iter().position(|p| {
-                p.contains("github.com")
-                    || p.contains("gitlab.com")
-                    || p.contains("codeberg.org")
-                    || p.contains("bitbucket.org")
-            });
-            if let Some(i) = idx {
-                let repo = parts[i + 1..].join("/");
-                return format!("{}:{}", host_alias, repo);
-            }
+            let repo = parts[i + 1..].join("/");
+            return format!("{host_alias}:{repo}");
         }
-        format!("{}:{}", host_alias, url)
+        format!("{host_alias}:{url}")
     } else {
         url.to_string()
     }
+}
+
+fn is_known_provider(host: &str) -> bool {
+    host.contains("github.com")
+        || host.contains("gitlab.com")
+        || host.contains("codeberg.org")
+        || host.contains("bitbucket.org")
 }
 
 pub fn set_git_config(username: &str, email: &str, gpg_key_id: Option<&str>) -> io::Result<()> {
