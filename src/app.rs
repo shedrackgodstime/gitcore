@@ -21,140 +21,16 @@ use std::process::Command;
 pub fn run(cli: Cli) -> io::Result<()> {
     match cli.command {
         Commands::Add { name, platform } => {
-            let name = if let Some(n) = name {
-                n
-            } else {
-                prompt_input("Enter account name: ")?
-            };
-
-            let platform = if let Some(p) = platform {
-                match Platform::from_str(&p) {
-                    Some(pl) => pl,
-                    None => {
-                        eprintln!(
-                            "{}",
-                            "Invalid platform. Use: github, gitlab, codeberg, bitbucket".red()
-                        );
-                        return Ok(());
-                    }
-                }
-            } else {
-                match Platform::from_str(&prompt_input(
-                    "Enter platform (github/gitlab/codeberg/bitbucket): ",
-                )?) {
-                    Some(pl) => pl,
-                    None => {
-                        eprintln!(
-                            "{}",
-                            "Invalid platform. Use: github, gitlab, codeberg, bitbucket".red()
-                        );
-                        return Ok(());
-                    }
-                }
-            };
-
-            let username = prompt_input("Enter your git username (for commits): ")?;
-            let email = prompt_input("Enter your email (for SSH key + commits): ")?;
-            let passphrase =
-                prompt_input("Enter passphrase for SSH key (leave empty for no protection): ")?;
-
-            let key_path = format!("id_ed25519_{}", name);
-            let host_alias = format!("{}-{}", platform.host().split('.').next().unwrap(), name);
-
-            let mut config = load_config();
-
-            if !is_valid_account_name(&name) {
-                eprintln!(
-                    "{} Account name must use only letters, numbers, '-' or '_'.",
-                    "[x]".red()
-                );
-                return Ok(());
-            }
-
-            if username.is_empty() {
-                eprintln!("{}", "[x] Username cannot be empty.".red());
-                return Ok(());
-            }
-
-            if email.is_empty() {
-                eprintln!("{}", "[x] Email cannot be empty.".red());
-                return Ok(());
-            }
-
-            if config
-                .accounts
-                .iter()
-                .any(|a| a.name.eq_ignore_ascii_case(&name))
-            {
-                eprintln!(
-                    "{} Account '{}' already exists. Use 'gity remove {}' first.",
-                    "[x]".red(),
-                    name,
-                    name
-                );
-                return Ok(());
-            }
-
-            if config
-                .accounts
-                .iter()
-                .any(|a| a.host_alias.eq_ignore_ascii_case(&host_alias))
-            {
-                eprintln!(
-                    "{} Host alias '{}' already exists. Choose a different account name.",
-                    "[x]".red(),
-                    host_alias
-                );
-                return Ok(());
-            }
-
-            let pub_key = generate_ssh_key(&key_path, &email, &passphrase)?;
-
-            let account = Account {
-                name: name.clone(),
-                platform: platform.clone(),
-                key_path,
-                host_alias: host_alias.clone(),
-                username: username.to_string(),
-                email: email.to_string(),
-            };
-
-            config.accounts.push(account);
-            save_config(&config)?;
-            update_ssh_config(&config.accounts)?;
-
-            println!("\n{}", "Success: Account added successfully".green().bold());
-            println!();
-            println!("  Name:     {}", name.bold());
-            println!("  Platform: {:?}", platform);
-            println!("  Use:      git clone git@{}:user/repo.git", host_alias);
-            println!();
-            println!("{}", "Next steps:".yellow().bold());
-            println!();
-            println!("  1. Add your SSH public key to your platform:");
-            println!("     {}", pub_key.cyan());
-            println!();
-            println!("     Open: {}", provider_key_url(&platform).cyan());
-            println!();
-            println!("  2. Test your connection:");
-            println!("     Run: {}", format!("gity test {}", host_alias).cyan());
-            println!();
-            println!("  3. Start using it:");
-            println!(
-                "     Clone:  git clone git@{}:username/repo.git",
-                host_alias
-            );
-            println!("     Remote: gity remote add");
-            println!();
+            handle_add_account(name, platform)?;
         }
 
         Commands::List => {
             let config = load_config();
             if config.accounts.is_empty() {
-                println!(
-                    "{}",
-                    "No accounts configured. Run 'gity add <name> <platform>'".yellow()
-                );
+                println!("{}", "No accounts configured.".yellow());
+                if confirm("Would you like to add your first account now? [y/N]: ")? {
+                    handle_add_account(None, None)?;
+                }
                 return Ok(());
             }
 
@@ -181,7 +57,10 @@ pub fn run(cli: Cli) -> io::Result<()> {
         Commands::Clone { repo } => {
             let config = load_config();
             if config.accounts.is_empty() {
-                println!("{}", "No accounts. Run 'gity add' first".red());
+                println!("{}", "No accounts configured.".yellow());
+                if confirm("Would you like to add an account now? [y/N]: ")? {
+                    handle_add_account(None, None)?;
+                }
                 return Ok(());
             }
 
@@ -420,7 +299,10 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 let config = load_config();
                 if config.accounts.is_empty() {
-                    println!("{}", "No accounts. Add one first with 'gity add'".red());
+                    println!("{}", "No accounts configured.".yellow());
+                    if confirm("Would you like to add an account now? [y/N]: ")? {
+                        handle_add_account(None, None)?;
+                    }
                     return Ok(());
                 }
 
@@ -962,6 +844,135 @@ pub fn run(cli: Cli) -> io::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Result<()> {
+    let name = if let Some(n) = name {
+        n
+    } else {
+        prompt_input("Enter account name: ")?
+    };
+
+    let platform = if let Some(p) = platform {
+        match Platform::from_str(&p) {
+            Some(pl) => pl,
+            None => {
+                eprintln!(
+                    "{}",
+                    "Invalid platform. Use: github, gitlab, codeberg, bitbucket".red()
+                );
+                return Ok(());
+            }
+        }
+    } else {
+        match Platform::from_str(&prompt_input(
+            "Enter platform (github/gitlab/codeberg/bitbucket): ",
+        )?) {
+            Some(pl) => pl,
+            None => {
+                eprintln!(
+                    "{}",
+                    "Invalid platform. Use: github, gitlab, codeberg, bitbucket".red()
+                );
+                return Ok(());
+            }
+        }
+    };
+
+    let username = prompt_input("Enter your git username (for commits): ")?;
+    let email = prompt_input("Enter your email (for SSH key + commits): ")?;
+    let passphrase =
+        prompt_input("Enter passphrase for SSH key (leave empty for no protection): ")?;
+
+    let key_path = format!("id_ed25519_{}", name);
+    let host_alias = format!("{}-{}", platform.host().split('.').next().unwrap(), name);
+
+    let mut config = load_config();
+
+    if !is_valid_account_name(&name) {
+        eprintln!(
+            "{} Account name must use only letters, numbers, '-' or '_'.",
+            "[x]".red()
+        );
+        return Ok(());
+    }
+
+    if username.is_empty() {
+        eprintln!("{}", "[x] Username cannot be empty.".red());
+        return Ok(());
+    }
+
+    if email.is_empty() {
+        eprintln!("{}", "[x] Email cannot be empty.".red());
+        return Ok(());
+    }
+
+    if config
+        .accounts
+        .iter()
+        .any(|a| a.name.eq_ignore_ascii_case(&name))
+    {
+        eprintln!(
+            "{} Account '{}' already exists. Use 'gity remove {}' first.",
+            "[x]".red(),
+            name,
+            name
+        );
+        return Ok(());
+    }
+
+    if config
+        .accounts
+        .iter()
+        .any(|a| a.host_alias.eq_ignore_ascii_case(&host_alias))
+    {
+        eprintln!(
+            "{} Host alias '{}' already exists. Choose a different account name.",
+            "[x]".red(),
+            host_alias
+        );
+        return Ok(());
+    }
+
+    let pub_key = generate_ssh_key(&key_path, &email, &passphrase)?;
+
+    let account = Account {
+        name: name.clone(),
+        platform: platform.clone(),
+        key_path,
+        host_alias: host_alias.clone(),
+        username: username.to_string(),
+        email: email.to_string(),
+    };
+
+    config.accounts.push(account);
+    save_config(&config)?;
+    update_ssh_config(&config.accounts)?;
+
+    println!("\n{}", "Success: Account added successfully".green().bold());
+    println!();
+    println!("  Name:     {}", name.bold());
+    println!("  Platform: {:?}", platform);
+    println!("  Use:      git clone git@{}:user/repo.git", host_alias);
+    println!();
+    println!("{}", "Next steps:".yellow().bold());
+    println!();
+    println!("  1. Add your SSH public key to your platform:");
+    println!("     {}", pub_key.cyan());
+    println!();
+    println!("     Open: {}", provider_key_url(&platform).cyan());
+    println!();
+    println!("  2. Test your connection:");
+    println!("     Run: {}", format!("gity test {}", host_alias).cyan());
+    println!();
+    println!("  3. Start using it:");
+    println!(
+        "     Clone:  git clone git@{}:username/repo.git",
+        host_alias
+    );
+    println!("     Remote: gity remote add");
+    println!();
     Ok(())
 }
 

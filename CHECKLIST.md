@@ -24,8 +24,8 @@
 
 ## Testing
 - [x] Add tests for `convert_to_host`
-- [ ] Add tests for config load/save behavior
-- [ ] Add tests for account add/remove edge cases
+- [x] Add tests for config load/save behavior
+- [x] Add tests for account add/remove edge cases
 
 ## Documentation
 - [x] Update README to match actual behavior

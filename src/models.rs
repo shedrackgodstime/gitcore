@@ -96,3 +96,74 @@ pub fn validate_accounts(accounts: &[Account]) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_valid_account_name() {
+        assert!(is_valid_account_name("work"));
+        assert!(is_valid_account_name("personal-git"));
+        assert!(is_valid_account_name("user_123"));
+        assert!(!is_valid_account_name(""));
+        assert!(!is_valid_account_name("work account"));
+        assert!(!is_valid_account_name("work@git"));
+    }
+
+    #[test]
+    fn test_validate_accounts_duplicates() {
+        let accounts = vec![
+            Account {
+                name: "Work".to_string(),
+                platform: Platform::Github,
+                key_path: "k1".to_string(),
+                host_alias: "h1".to_string(),
+                username: "u1".to_string(),
+                email: "e1".to_string(),
+            },
+            Account {
+                name: "work".to_string(), // Duplicate name (case-insensitive)
+                platform: Platform::Gitlab,
+                key_path: "k2".to_string(),
+                host_alias: "h2".to_string(),
+                username: "u2".to_string(),
+                email: "e2".to_string(),
+            },
+        ];
+        assert!(validate_accounts(&accounts).is_err());
+
+        let accounts = vec![
+            Account {
+                name: "a1".to_string(),
+                platform: Platform::Github,
+                key_path: "k1".to_string(),
+                host_alias: "alias".to_string(),
+                username: "u1".to_string(),
+                email: "e1".to_string(),
+            },
+            Account {
+                name: "a2".to_string(),
+                platform: Platform::Github,
+                key_path: "k2".to_string(),
+                host_alias: "ALIAS".to_string(), // Duplicate alias (case-insensitive)
+                username: "u2".to_string(),
+                email: "e2".to_string(),
+            },
+        ];
+        assert!(validate_accounts(&accounts).is_err());
+    }
+
+    #[test]
+    fn test_validate_accounts_empty_fields() {
+        let accounts = vec![Account {
+            name: "work".to_string(),
+            platform: Platform::Github,
+            key_path: "k1".to_string(),
+            host_alias: "h1".to_string(),
+            username: "  ".to_string(),
+            email: "e1".to_string(),
+        }];
+        assert!(validate_accounts(&accounts).is_err());
+    }
+}

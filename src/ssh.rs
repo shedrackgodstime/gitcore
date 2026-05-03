@@ -26,13 +26,11 @@ pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
 
     for acc in accounts {
         let key_full_path = ssh_dir.join(&acc.key_path);
+        let key_path_str = key_full_path.to_string_lossy().replace('\\', "/");
         managed_block.push_str(&format!("Host {}\n", acc.host_alias));
         managed_block.push_str(&format!("  HostName {}\n", acc.platform.host()));
         managed_block.push_str("  User git\n");
-        managed_block.push_str(&format!(
-            "  IdentityFile {}\n",
-            key_full_path.to_str().unwrap()
-        ));
+        managed_block.push_str(&format!("  IdentityFile {}\n", key_path_str));
         managed_block.push_str("  AddKeysToAgent yes\n");
         managed_block.push_str("  IdentitiesOnly yes\n\n");
     }
@@ -72,9 +70,11 @@ pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
 
     fs::write(&config_path, new_content)?;
 
-    let _ = Command::new("chmod")
-        .args(["600", config_path.to_str().unwrap()])
-        .output();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&config_path, fs::Permissions::from_mode(0o600));
+    }
 
     println!("{}", "Success: SSH config updated".green());
     Ok(())
@@ -102,14 +102,13 @@ pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Re
             ],
         )?;
 
-        let _ = Command::new("chmod")
-            .args(["600", key_full.to_str().unwrap()])
-            .output();
-
-        let pub_key_path = ssh_dir.join(format!("{}.pub", key_path));
-        let _ = Command::new("chmod")
-            .args(["644", pub_key_path.to_str().unwrap()])
-            .output();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&key_full, fs::Permissions::from_mode(0o600));
+            let pub_key_path = ssh_dir.join(format!("{}.pub", key_path));
+            let _ = fs::set_permissions(&pub_key_path, fs::Permissions::from_mode(0o644));
+        }
 
         println!("{}", "Success: SSH key generated".green());
         if passphrase.is_empty() {
