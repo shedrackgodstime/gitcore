@@ -2,6 +2,7 @@ mod app;
 mod cli;
 mod config;
 mod git;
+mod gpg;
 mod models;
 mod ssh;
 mod ui;

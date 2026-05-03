@@ -9,6 +9,7 @@ pub struct Account {
     pub host_alias: String,
     pub username: String,
     pub email: String,
+    pub gpg_key_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -115,32 +116,35 @@ mod tests {
     fn test_validate_accounts_duplicates() {
         let accounts = vec![
             Account {
-                name: "Work".to_string(),
+                name: "test".to_string(),
                 platform: Platform::Github,
-                key_path: "k1".to_string(),
-                host_alias: "h1".to_string(),
-                username: "u1".to_string(),
-                email: "e1".to_string(),
+                key_path: "key".to_string(),
+                host_alias: "alias".to_string(),
+                username: "user".to_string(),
+                email: "email".to_string(),
+                gpg_key_id: None,
             },
             Account {
-                name: "work".to_string(), // Duplicate name (case-insensitive)
+                name: "TEST".to_string(), // Duplicate name (case-insensitive)
                 platform: Platform::Gitlab,
                 key_path: "k2".to_string(),
                 host_alias: "h2".to_string(),
                 username: "u2".to_string(),
                 email: "e2".to_string(),
+                gpg_key_id: None,
             },
         ];
         assert!(validate_accounts(&accounts).is_err());
 
         let accounts = vec![
             Account {
-                name: "a1".to_string(),
+                name: "test".to_string(),
                 platform: Platform::Github,
-                key_path: "k1".to_string(),
+                key_path: "key".to_string(),
                 host_alias: "alias".to_string(),
-                username: "u1".to_string(),
-                email: "e1".to_string(),
+                username: "user".to_string(),
+                email: "email".to_string(),
+                gpg_key_id: None,
             },
             Account {
                 name: "a2".to_string(),
@@ -149,6 +153,7 @@ mod tests {
                 host_alias: "ALIAS".to_string(), // Duplicate alias (case-insensitive)
                 username: "u2".to_string(),
                 email: "e2".to_string(),
+                gpg_key_id: None,
             },
         ];
         assert!(validate_accounts(&accounts).is_err());
@@ -163,6 +168,7 @@ mod tests {
             host_alias: "h1".to_string(),
             username: "  ".to_string(),
             email: "e1".to_string(),
+            gpg_key_id: None,
         }];
         assert!(validate_accounts(&accounts).is_err());
     }

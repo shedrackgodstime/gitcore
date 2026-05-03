@@ -15,6 +15,11 @@ pub fn confirm(prompt: &str) -> io::Result<bool> {
     Ok(answer.eq_ignore_ascii_case("y"))
 }
 
+pub fn prompt_password(prompt: &str) -> io::Result<String> {
+    let password = rpassword::prompt_password(prompt)?;
+    Ok(password)
+}
+
 pub fn select_account(accounts: &[Account], title: &str) -> io::Result<Option<usize>> {
     println!("{}", title.cyan());
     for (i, acc) in accounts.iter().enumerate() {
@@ -45,6 +50,21 @@ pub fn select_file(files: &[String], title: &str) -> io::Result<Option<usize>> {
     let input = prompt_input(&format!("\nSelect backup file (1-{}): ", files.len()))?;
     let choice: usize = input.trim().parse().unwrap_or(0);
     if choice == 0 || choice > files.len() {
+        Ok(None)
+    } else {
+        Ok(Some(choice - 1))
+    }
+}
+
+pub fn select_gpg_key(keys: &[crate::gpg::GpgKey], title: &str) -> io::Result<Option<usize>> {
+    println!("{}", title.cyan());
+    for (i, key) in keys.iter().enumerate() {
+        println!("  [{}] {} ({}) - {}", i + 1, key.name, key.email, key.id);
+    }
+
+    let input = prompt_input(&format!("\nSelect GPG key (1-{}): ", keys.len()))?;
+    let choice: usize = input.trim().parse().unwrap_or(0);
+    if choice == 0 || choice > keys.len() {
         Ok(None)
     } else {
         Ok(Some(choice - 1))

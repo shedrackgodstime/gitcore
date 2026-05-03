@@ -4,13 +4,13 @@ use crate::git::{
     convert_to_host, ensure_git_repository, run_git, run_git_remote_add, set_git_config,
 };
 use crate::models::{
-    is_valid_account_name, validate_accounts, Account, GityConfig, Platform, Vault, VaultKey,
+    Account, GityConfig, Platform, Vault, VaultKey, is_valid_account_name, validate_accounts,
 };
 use crate::ssh::{
-    check_host_key, delete_account_keys, generate_ssh_key, get_ssh_dir, provider_key_url,
-    test_ssh_connection, update_ssh_config, HostKeyStatus,
+    HostKeyStatus, check_host_key, delete_account_keys, generate_ssh_key, get_ssh_dir,
+    provider_key_url, test_ssh_connection, update_ssh_config,
 };
-use crate::ui::{confirm, print_result, prompt_input, select_account};
+use crate::ui::{confirm, print_result, prompt_input, prompt_password, select_account};
 use crate::vault::{decrypt_vault, encrypt_vault};
 use colored::Colorize;
 use std::fs;
@@ -46,6 +46,9 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 println!("   Key:      {}", acc.key_path);
                 println!("   User:     {}", acc.username);
                 println!("   Email:    {}", acc.email);
+                if let Some(gpg_id) = &acc.gpg_key_id {
+                    println!("   GPG:      {}", gpg_id.cyan());
+                }
                 println!(
                     "   Use:      git clone git@{}:user/repo.git",
                     acc.host_alias
@@ -113,14 +116,17 @@ pub fn run(cli: Cli) -> io::Result<()> {
                 }
 
                 std::env::set_current_dir(&clone_dir).ok();
-                if let Err(err) = set_git_config(&acc.username, &acc.email) {
+                if let Err(err) =
+                    set_git_config(&acc.username, &acc.email, acc.gpg_key_id.as_deref())
+                {
                     println!(
                         "{}",
-                        "[x] Clone succeeded, but git config update failed".red()
+                        "Error: Clone succeeded, but git config update failed".red()
                     );
                     println!("   {}", err);
                     return Ok(());
                 }
+
                 println!("{}", "[v] Cloned with git config:".green());
                 println!("  user.name  = {}", acc.username);
                 println!("  user.email = {}", acc.email);
@@ -185,14 +191,15 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
             std::env::set_current_dir(&target_dir).ok();
 
-            if let Err(err) = set_git_config(&acc.username, &acc.email) {
+            if let Err(err) = set_git_config(&acc.username, &acc.email, acc.gpg_key_id.as_deref()) {
                 println!(
                     "{}",
-                    "[x] Clone succeeded, but git config update failed".red()
+                    "Error: Clone succeeded, but git config update failed".red()
                 );
                 println!("   {}", err);
                 return Ok(());
             }
+
             println!("{}", "[v] Cloned and git config set:".green());
             println!("  user.name  = {}", acc.username);
             println!("  user.email = {}", acc.email);
@@ -329,11 +336,14 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 if let Some((url, acc)) = preloaded {
                     let converted = convert_to_host(&url, &acc.host_alias);
-                    if let Err(err) = set_git_config(&acc.username, &acc.email) {
-                        println!("{}", "[x] Failed to set git config".red());
+                    if let Err(err) =
+                        set_git_config(&acc.username, &acc.email, acc.gpg_key_id.as_deref())
+                    {
+                        println!("{}", "Error: Failed to set git config".red());
                         println!("   {}", err);
                         return Ok(());
                     }
+
                     if let Err(err) = run_git_remote_add(&converted) {
                         println!("{}", "[x] Failed to configure origin remote".red());
                         println!("   {}", err);
@@ -356,11 +366,16 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     .unwrap_or_else(|| prompt_input("Enter repository URL: ").unwrap_or_default());
 
                 let converted = convert_to_host(&final_repo, &selected_acc.host_alias);
-                if let Err(err) = set_git_config(&selected_acc.username, &selected_acc.email) {
-                    println!("{}", "[x] Failed to set git config".red());
+                if let Err(err) = set_git_config(
+                    &selected_acc.username,
+                    &selected_acc.email,
+                    selected_acc.gpg_key_id.as_deref(),
+                ) {
+                    println!("{}", "Error: Failed to set git config".red());
                     println!("   {}", err);
                     return Ok(());
                 }
+
                 if let Err(err) = run_git_remote_add(&converted) {
                     println!("{}", "[x] Failed to configure origin remote".red());
                     println!("   {}", err);
@@ -423,10 +438,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         return Ok(());
                     }
 
-                    if let Err(err) = set_git_config(&acc.username, &acc.email) {
+                    if let Err(err) =
+                        set_git_config(&acc.username, &acc.email, acc.gpg_key_id.as_deref())
+                    {
                         println!(
                             "{}",
-                            "[x] Remote switched, but git config update failed".red()
+                            "Error: Clone succeeded, but git config update failed".red()
                         );
                         println!("   {}", err);
                         return Ok(());
@@ -454,13 +471,13 @@ pub fn run(cli: Cli) -> io::Result<()> {
             println!("configuration and all associated private SSH keys.");
             println!();
 
-            let password = rpassword::prompt_password("  Master Password: ")?;
+            let password = prompt_password("  Master Password: ")?;
             if password.is_empty() {
                 println!("{}", "Error: Password cannot be empty.".red());
                 return Ok(());
             }
 
-            let confirm_password = rpassword::prompt_password("  Confirm Password: ")?;
+            let confirm_password = prompt_password("  Confirm Password: ")?;
             if password != confirm_password {
                 println!("{}", "Error: Passwords do not match.".red());
                 return Ok(());
@@ -588,7 +605,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             println!();
             println!("{}", "Gity Vault Restore".cyan().bold());
             println!("{}", "=".repeat(18).cyan());
-            let password = rpassword::prompt_password("  Master Password: ")?;
+            let password = prompt_password("  Master Password: ")?;
 
             let data = fs::read(&path)?;
             let vault = match decrypt_vault(&data, &password) {
@@ -811,7 +828,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
                 println!("{}", "[*] Generating new SSH key...".cyan());
 
-                let passphrase = prompt_input(
+                let passphrase = prompt_password(
                     "Enter passphrase for new SSH key (leave empty for no protection): ",
                 )?;
 
@@ -883,7 +900,7 @@ fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Res
     let username = prompt_input("Enter your git username (for commits): ")?;
     let email = prompt_input("Enter your email (for SSH key + commits): ")?;
     let passphrase =
-        prompt_input("Enter passphrase for SSH key (leave empty for no protection): ")?;
+        prompt_password("Enter passphrase for SSH key (leave empty for no protection): ")?;
 
     let key_path = format!("id_ed25519_{}", name);
     let host_alias = format!("{}-{}", platform.host().split('.').next().unwrap(), name);
@@ -937,6 +954,25 @@ fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Res
 
     let pub_key = generate_ssh_key(&key_path, &email, &passphrase)?;
 
+    let mut gpg_key_id = None;
+    if confirm("\nWould you like to associate a GPG signing key with this account? [y/N]: ")? {
+        let gpg_keys = crate::gpg::list_gpg_keys()?;
+        if gpg_keys.is_empty() {
+            println!("{}", "No GPG secret keys found on your system.".yellow());
+            println!("You can generate one later with: gpg --full-generate-key");
+        } else {
+            match crate::ui::select_gpg_key(&gpg_keys, "Select a GPG key to use for signing:")? {
+                Some(idx) => {
+                    gpg_key_id = Some(gpg_keys[idx].id.clone());
+                    println!("Associated GPG key: {}", gpg_keys[idx].id.cyan());
+                }
+                None => {
+                    println!("{}", "No GPG key associated.".yellow());
+                }
+            }
+        }
+    }
+
     let account = Account {
         name: name.clone(),
         platform: platform.clone(),
@@ -944,6 +980,7 @@ fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Res
         host_alias: host_alias.clone(),
         username: username.to_string(),
         email: email.to_string(),
+        gpg_key_id,
     };
 
     config.accounts.push(account);

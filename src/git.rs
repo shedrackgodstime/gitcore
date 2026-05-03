@@ -36,12 +36,8 @@ pub fn ensure_git_repository(path: &Path) -> bool {
 pub fn convert_to_host(url: &str, host_alias: &str) -> String {
     let url = url.trim().trim_end_matches(".git").to_string();
 
-    if url.starts_with("git@") {
-        if let Some(path) = url.strip_prefix("git@") {
-            if let Some((_host, rest)) = path.split_once(':') {
-                return format!("{}:{}", host_alias, rest);
-            }
-        }
+    if let Some((_host, rest)) = url.strip_prefix("git@").and_then(|p| p.split_once(':')) {
+        return format!("{}:{}", host_alias, rest);
     }
 
     if url.starts_with("https://") || url.starts_with("http://") {
@@ -61,18 +57,16 @@ pub fn convert_to_host(url: &str, host_alias: &str) -> String {
         }
     }
 
-    if url.starts_with("ssh://") {
-        if let Some(rest) = url.strip_prefix("ssh://") {
-            let parts: Vec<&str> = rest.split('/').collect();
-            if parts.len() >= 2
-                && (parts[0].contains("github.com")
-                    || parts[0].contains("gitlab.com")
-                    || parts[0].contains("codeberg.org")
-                    || parts[0].contains("bitbucket.org"))
-            {
-                let repo = parts[1..].join("/");
-                return format!("{}:{}", host_alias, repo);
-            }
+    if let Some(rest) = url.strip_prefix("ssh://") {
+        let parts: Vec<&str> = rest.split('/').collect();
+        if parts.len() >= 2
+            && (parts[0].contains("github.com")
+                || parts[0].contains("gitlab.com")
+                || parts[0].contains("codeberg.org")
+                || parts[0].contains("bitbucket.org"))
+        {
+            let repo = parts[1..].join("/");
+            return format!("{}:{}", host_alias, repo);
         }
     }
 
@@ -100,9 +94,17 @@ pub fn convert_to_host(url: &str, host_alias: &str) -> String {
     }
 }
 
-pub fn set_git_config(username: &str, email: &str) -> io::Result<()> {
+pub fn set_git_config(username: &str, email: &str, gpg_key_id: Option<&str>) -> io::Result<()> {
     run_git(&["config", "user.name", username])?;
     run_git(&["config", "user.email", email])?;
+
+    if let Some(key_id) = gpg_key_id {
+        run_git(&["config", "user.signingkey", key_id])?;
+        run_git(&["config", "commit.gpgsign", "true"])?;
+    } else {
+        // Optional: disable signing if no key is provided,
+        // but usually we just leave existing config alone if not explicitly managing it.
+    }
     Ok(())
 }
 

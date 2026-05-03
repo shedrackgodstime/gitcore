@@ -1,11 +1,11 @@
 use crate::models::Vault;
 use aes_gcm::{
-    aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
+    aead::{Aead, KeyInit},
 };
 use argon2::{
-    password_hash::{PasswordHasher, SaltString},
     Argon2,
+    password_hash::{PasswordHasher, SaltString},
 };
 use rand::Rng;
 use std::io;
@@ -15,7 +15,7 @@ const NONCE_LEN: usize = 12;
 
 pub fn encrypt_vault(vault: Vault, password: &str) -> io::Result<Vec<u8>> {
     let json = serde_json::to_string(&vault)?;
-    let salt_bytes: [u8; SALT_LEN] = rand::thread_rng().gen();
+    let salt_bytes: [u8; SALT_LEN] = rand::thread_rng().r#gen();
     let salt_string =
         SaltString::encode_b64(&salt_bytes).map_err(|e| io::Error::other(e.to_string()))?;
 
@@ -35,7 +35,7 @@ pub fn encrypt_vault(vault: Vault, password: &str) -> io::Result<Vec<u8>> {
 
     let cipher =
         Aes256Gcm::new_from_slice(&key_bytes).map_err(|e| io::Error::other(e.to_string()))?;
-    let nonce_bytes: [u8; NONCE_LEN] = rand::thread_rng().gen();
+    let nonce_bytes: [u8; NONCE_LEN] = rand::thread_rng().r#gen();
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
@@ -101,6 +101,7 @@ mod tests {
                 host_alias: "github-test".to_string(),
                 username: "tester".to_string(),
                 email: "test@example.com".to_string(),
+                gpg_key_id: None,
             }],
         };
 

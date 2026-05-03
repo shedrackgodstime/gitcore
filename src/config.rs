@@ -63,6 +63,7 @@ mod tests {
             host_alias: "alias".to_string(),
             username: "user".to_string(),
             email: "email".to_string(),
+            gpg_key_id: None,
         });
 
         save_config_to_path(&config, &config_path).unwrap();
