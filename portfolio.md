@@ -1,29 +1,31 @@
 ---
-title: "Gity: Zero-Friction Git Identity Orchestrator"
-description: "A systems-level Rust CLI that solves Git identity leakage through deterministic OpenSSH orchestration and authenticated cryptographic vaults."
-tags: ["Rust", "Cryptography", "Systems Engineering", "Security"]
+title: "Gity: Multi-Account Git Identity Manager in Rust"
+description: "A Rust CLI that lets developers manage multiple GitHub, GitLab, Codeberg, and Bitbucket accounts on a single machine with isolated SSH keys, automatic config management, and an encrypted portable vault."
+tags: ["Rust", "Git", "Cryptography", "Systems Engineering", "Security"]
 year: "2026"
 month: "March"
 status: "Completed"
 category: "Infrastructure & Tooling"
 ---
 
-## The Problem: Identity Leakage
+## The Problem
 
-Standard Git and OpenSSH configurations are built for a single global identity. When juggling corporate, personal, and open-source contexts, relying on globally scoped state (`~/.gitconfig` or `ssh-agent`) inevitably leads to "identity leakage"—accidental commits with incorrect emails or authentication failures. The objective was to engineer a robust, automated identity layer that entirely isolates these contexts without relying on fragile shell scripts.
+Most developers eventually need to manage more than one Git account — a work account, a personal one, an open-source identity. The default Git and SSH tooling was designed for a single global user, so running multiple accounts on the same machine quickly becomes a mess: commits go out under the wrong email, SSH authentication fails because the wrong key was offered, and setting everything up on a new machine takes an hour of manual config editing.
+
+The goal was to build a tool that makes managing multiple accounts as simple as managing one — fully automated, no manual SSH config editing, no sticky notes.
 
 ## Architecture & Systems Engineering
 
-Gity is built as a statically linked Rust binary, prioritizing memory safety and zero external runtime dependencies. 
+Gity is built as a statically linked Rust binary with zero external runtime dependencies.
 
-### 1. Deterministic State Orchestration
-To solve identity leakage, Gity bypasses global state by dynamically orchestrating OpenSSH behavior. It generates isolated `Ed25519` keys and injects a strictly managed block into `~/.ssh/config`. By mapping specific host aliases, enforcing `IdentitiesOnly yes`, and rewriting clone URLs on the fly, Gity prevents arbitrary key negotiation and guarantees deterministic authentication.
+### 1. Deterministic Identity Routing
+Each account gets its own isolated `Ed25519` SSH key. Gity injects a strictly managed block into `~/.ssh/config`, mapping each account to a unique host alias and enforcing `IdentitiesOnly yes`. This prevents OpenSSH from negotiating arbitrary keys — the right key is always used for the right account, automatically. Clone URLs (HTTPS, SSH, or shorthand) are rewritten on the fly to route through the correct alias.
 
-### 2. The Cryptographic Portability Constraint
-A core requirement was the ability to migrate entire development environments instantly without external dependencies like `openssl`. The system bundles the identity state into a portable `.gity` vault, secured via **AES-256-GCM** (authenticated encryption) and **Argon2id** (memory-hard key derivation) to defend against offline attacks.
+### 2. Encrypted Portable Vault
+A key requirement was zero-friction migration between machines — with no dependency on external tools like `openssl`. The entire identity state (config + all private SSH keys) is bundled into a single `.gity` file, secured via **AES-256-GCM** (authenticated encryption) and **Argon2id** (memory-hard key derivation) to defend against offline attacks. Restoring a full environment on a new machine takes one command.
 
 ### 3. Native Security Enforcement
-Relying on shell-outs (like executing `chmod`) is fragile. Instead, Gity utilizes native OS system calls (`std::os::unix::fs::PermissionsExt`) to programmatically enforce strict `0600` file permissions on all private keys. This ensures absolute compliance with OpenSSH security requirements while maintaining cross-platform reliability.
+Rather than shelling out to `chmod`, Gity uses native OS system calls (`std::os::unix::fs::PermissionsExt`) to programmatically enforce `0600` file permissions on all private keys. This ensures compliance with OpenSSH security requirements without platform-dependent workarounds.
 
 ## System Architecture
 
@@ -48,27 +50,49 @@ graph TD
     SSHConfig -->|IdentitiesOnly=yes| SSH
 ```
 
-## Quick DX Showcase
+## Try It Out
 
-To demonstrate the "Zero-Friction" workflow, here is how the orchestration feels in practice:
+**Install**
 
+Linux & macOS:
 ```bash
-# 1. Add a dedicated work identity (generates key, updates ~/.ssh/config)
-gity add work github
+curl -fsSL https://shedrackgodstime.github.io/gity/install | sh
+```
 
-# 2. Gity intercepts the URL, configures authorship, and clones securely
-gity clone work github.com/company/private-repo.git
+Windows (PowerShell):
+```powershell
+iwr https://shedrackgodstime.github.io/gity/ps | iex
+```
 
-# 3. All subsequent standard Git operations are now identity-aware automatically
-git commit -m "feat: isolated push"
-git push
+**Then run:**
+```
+$ gity --help
+
+Manage multiple Git accounts safely with SSH keys
+
+Usage: gity <COMMAND>
+
+Commands:
+  add     Add a new git account (creates SSH key + config)
+  list    List all configured accounts with usage instructions
+  clone   Clone a repo using a specific account (auto-sets git config)
+  test    Test SSH connection (e.g. gity test github-work)
+  remote  Manage git remotes for repositories
+  export  Export configuration (backup or migrate to another machine)
+  import  Import configuration from a file or stdin
+  remove  Remove an account from gity config
+  audit   Run security audit (file permissions, key protection, etc.)
+  rotate  Rotate SSH key for an account (regenerate + show new public key)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
 ## Impact
 
-Gity transitions the management of multiple developer identities from an error-prone chore into a mathematically verifiable pipeline. It completely eliminates identity leakage, introduces graceful GPG signing integration, and reduces new environment setup time from hours to seconds through secure vaults.
+Gity removes the entire category of "wrong account" mistakes from a developer's workflow. Work and personal accounts stay completely isolated, switching between them requires zero manual effort, and migrating to a new machine takes seconds instead of an hour. It also includes optional GPG commit signing integration, a security audit command, and a CLI that guides you through setup interactively from the very first run.
 
 ---
 
-**[📖 Read the full technical deep-dive and documentation in the GitHub Repository →](https://github.com/shedrackgodstime/gity)**
-
+**[📖 Full documentation and technical deep-dive →](https://github.com/shedrackgodstime/gity)**

@@ -43,7 +43,7 @@ Gity introduces a dedicated **identity layer** that isolates each account. By au
 
 Gity is a CLI tool written in Rust that acts as a complete Git identity manager. It isolates each account with its own SSH key, automatically manages `~/.ssh/config` for seamless authentication, and provides commands that integrate identity awareness into standard `clone`, `push`, and `remote` workflows.
 
-It also provides a secure, portable vault a single encrypted file containing your entire configuration and private keys allowing for instantaneous environment restoration on new machines.
+It also provides a secure, portable vault — a single encrypted file containing your entire configuration and private keys — allowing for instantaneous environment restoration on new machines.
 
 ---
 
@@ -104,7 +104,7 @@ gity add personal codeberg
 ### 2. Verify the connection
 
 ```bash
-gity test work
+gity test github-work
 # [v] Connection successful! Authenticated as shedrackgodstime
 ```
 
@@ -130,11 +130,11 @@ gity remote switch personal
 | `gity add <name> <platform>` | Create a new identity and generate SSH keys |
 | `gity list` | List configured identities and connection strings |
 | `gity clone [repo]` | Clone a repository with automatic identity injection |
-| `gity test [name]` | Validate SSH authentication for an identity |
+| `gity test [host_alias]` | Validate SSH authentication (e.g. `gity test github-work`) |
 | `gity remote add` | Configure an identity-aware remote for a repository |
 | `gity remote switch` | Transition a repository to a different Gity identity |
-| `gity backup [file]` | Generate an encrypted vault (config + private keys) |
-| `gity restore [file]` | Restore an entire environment from a vault or JSON |
+| `gity export [file]` | Export your entire identity to an encrypted vault |
+| `gity import [file]` | Restore an entire environment from a vault or JSON |
 | `gity audit` | Perform security verification on keys and configurations |
 | `gity rotate <name>` | Regenerate and replace an existing SSH key |
 | `gity remove <name>` | Decommission an account and its associated keys |
