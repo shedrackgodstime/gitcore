@@ -63,20 +63,27 @@ It also provides a secure, portable vault — a single encrypted file containing
 
 ## Installation
 
-### Linux & macOS
+### From Crates.io (Recommended)
+If you have Rust and Cargo installed, you can install Gitcore directly from [crates.io](https://crates.io/crates/gitcore):
 
+```bash
+cargo install gitcore
+```
+
+### Script Installation
+For systems without a Rust environment:
+
+**Linux & macOS:**
 ```bash
 curl -fsSL https://shedrackgodstime.github.io/gitcore/install | sh
 ```
 
-### Windows
-
-```powershell
+**Windows (PowerShell):**
+```bash
 iwr https://shedrackgodstime.github.io/gitcore/ps | iex
 ```
 
 ### Build from Source
-
 ```bash
 git clone https://github.com/shedrackgodstime/gitcore.git
 cd gitcore
