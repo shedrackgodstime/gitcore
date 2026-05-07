@@ -65,18 +65,18 @@ jobs:
         run: |
           mkdir -p dist
           if [ "${{ matrix.ext }}" = ".exe" ]; then
-            cp target/${{ matrix.target }}/release/gity.exe dist/gity.exe
+            cp target/${{ matrix.target }}/release/gitcore.exe dist/gitcore.exe
             cd dist
-            tar -czf ../gity-${{ matrix.target }}.tar.gz *
+            tar -czf ../gitcore-${{ matrix.target }}.tar.gz *
           else
-            cp target/${{ matrix.target }}/release/gity dist/gity
+            cp target/${{ matrix.target }}/release/gitcore dist/gitcore
             cd dist
-            tar -czf ../gity-${{ matrix.target }}.tar.gz *
+            tar -czf ../gitcore-${{ matrix.target }}.tar.gz *
           fi
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          files: gity-*.tar.gz
+          files: gitcore-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

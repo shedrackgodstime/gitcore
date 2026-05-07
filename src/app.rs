@@ -4,7 +4,7 @@ use crate::git::{
     convert_to_host, ensure_git_repository, run_git, run_git_remote_add, set_git_config,
 };
 use crate::models::{
-    Account, GityConfig, Platform, Vault, VaultKey, is_valid_account_name, validate_accounts,
+    Account, GitcoreConfig, Platform, Vault, VaultKey, is_valid_account_name, validate_accounts,
 };
 use crate::ssh::{
     HostKeyStatus, check_host_key, delete_account_keys, generate_ssh_key, get_ssh_dir,
@@ -208,7 +208,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
         Commands::Test { name } => {
             let config = load_config();
             if config.accounts.is_empty() {
-                println!("{}", "No accounts configured. Run 'gity add' first".red());
+                println!("{}", "No accounts configured. Run 'gitcore add' first".red());
                 return Ok(());
             }
 
@@ -465,9 +465,9 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
 
             println!();
-            println!("{}", "Gity Vault Backup".cyan().bold());
+            println!("{}", "Gitcore Vault Backup".cyan().bold());
             println!("{}", "=".repeat(17).cyan());
-            println!("This will create a secure, encrypted archive of your Gity");
+            println!("This will create a secure, encrypted archive of your Gitcore");
             println!("configuration and all associated private SSH keys.");
             println!();
 
@@ -518,9 +518,9 @@ pub fn run(cli: Cli) -> io::Result<()> {
             println!("[*] Encrypting vault...");
             let encrypted_data = encrypt_vault(vault, &password)?;
 
-            let mut output_path = file.unwrap_or_else(|| "gity_backup.gity".to_string());
+            let mut output_path = file.unwrap_or_else(|| "gitcore_backup.gitcore".to_string());
             if !output_path.contains('.') {
-                output_path.push_str(".gity");
+                output_path.push_str(".gitcore");
             }
             fs::write(&output_path, encrypted_data)?;
 
@@ -544,7 +544,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
                         let path = entry.path();
                         if path.is_file() {
                             let name = path.file_name().unwrap_or_default().to_string_lossy();
-                            if name.ends_with(".gity") || name.ends_with(".json") {
+                            if name.ends_with(".gitcore") || name.ends_with(".json") {
                                 backups.push(name.to_string());
                             }
                         }
@@ -571,7 +571,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             let mut path = PathBuf::from(&input_path);
 
             if !path.exists() && !input_path.contains('.') {
-                let with_ext = format!("{}.gity", input_path);
+                let with_ext = format!("{}.gitcore", input_path);
                 let path_with_ext = PathBuf::from(&with_ext);
                 if path_with_ext.exists() {
                     path = path_with_ext;
@@ -588,7 +588,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             if final_path_str.ends_with(".json") {
                 println!("\n[*] Importing legacy JSON config...");
                 let content = fs::read_to_string(&path)?;
-                let config: GityConfig = serde_json::from_str(&content)
+                let config: GitcoreConfig = serde_json::from_str(&content)
                     .map_err(|e| io::Error::other(format!("Invalid JSON: {}", e)))?;
 
                 validate_accounts(&config.accounts).map_err(io::Error::other)?;
@@ -603,7 +603,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
 
             println!();
-            println!("{}", "Gity Vault Restore".cyan().bold());
+            println!("{}", "Gitcore Vault Restore".cyan().bold());
             println!("{}", "=".repeat(18).cyan());
             let password = prompt_password("  Master Password: ")?;
 
@@ -678,7 +678,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
 
             if let Some(n) = target_name {
                 if !confirm(&format!(
-                    "{} Are you sure? This will remove the account from gity [y/N]: ",
+                    "{} Are you sure? This will remove the account from gitcore [y/N]: ",
                     "[!]".yellow()
                 ))? {
                     println!("{}", "Cancelled".yellow());
@@ -721,7 +721,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             let ssh_dir = get_ssh_dir();
             let config_path = dirs::config_dir()
                 .unwrap_or_else(|| PathBuf::from("~/.config"))
-                .join("gity")
+                .join("gitcore")
                 .join("config.json");
 
             println!("{}", "SSH Keys".yellow().bold());
@@ -767,7 +767,7 @@ pub fn run(cli: Cli) -> io::Result<()> {
             }
             println!();
 
-            println!("{}", "Gity Config".yellow().bold());
+            println!("{}", "Gitcore Config".yellow().bold());
             if config_path.exists() {
                 let perms = get_permissions(&config_path);
                 if perms == 0o600 {
@@ -931,7 +931,7 @@ fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Res
         .any(|a| a.name.eq_ignore_ascii_case(&name))
     {
         eprintln!(
-            "{} Account '{}' already exists. Use 'gity remove {}' first.",
+            "{} Account '{}' already exists. Use 'gitcore remove {}' first.",
             "[x]".red(),
             name,
             name
@@ -1001,14 +1001,14 @@ fn handle_add_account(name: Option<String>, platform: Option<String>) -> io::Res
     println!("     Open: {}", provider_key_url(&platform).cyan());
     println!();
     println!("  2. Test your connection:");
-    println!("     Run: {}", format!("gity test {}", host_alias).cyan());
+    println!("     Run: {}", format!("gitcore test {}", host_alias).cyan());
     println!();
     println!("  3. Start using it:");
     println!(
         "     Clone:  git clone git@{}:username/repo.git",
         host_alias
     );
-    println!("     Remote: gity remote add");
+    println!("     Remote: gitcore remote add");
     println!();
     Ok(())
 }
@@ -1028,7 +1028,7 @@ fn get_permissions(path: &PathBuf) -> u32 {
 }
 
 #[allow(clippy::ptr_arg)]
-fn check_issues(config: &GityConfig, ssh_dir: &PathBuf) -> Vec<String> {
+fn check_issues(config: &GitcoreConfig, ssh_dir: &PathBuf) -> Vec<String> {
     let mut issues = Vec::new();
 
     for acc in &config.accounts {

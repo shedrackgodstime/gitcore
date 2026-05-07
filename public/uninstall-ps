@@ -1,9 +1,9 @@
-# gity - Windows Uninstall Script
+# gitcore - Windows Uninstall Script
 
-Write-Host "`n[*] Uninstalling gity..." -ForegroundColor Cyan
+Write-Host "`n[*] Uninstalling gitcore..." -ForegroundColor Cyan
 
-$DestDir = Join-Path $HOME "AppData\Local\Programs\gity"
-$ExePath = Join-Path $DestDir "gity.exe"
+$DestDir = Join-Path $HOME "AppData\Local\Programs\gitcore"
+$ExePath = Join-Path $DestDir "gitcore.exe"
 
 if (Test-Path $ExePath) {
     Remove-Item $ExePath -Force
@@ -23,13 +23,13 @@ if (Test-Path $ExePath) {
         Write-Host "[+] Removed $DestDir" -ForegroundColor Green
     }
     
-    Write-Host "`n[+] gity has been uninstalled." -ForegroundColor Green
+    Write-Host "`n[+] gitcore has been uninstalled." -ForegroundColor Green
 } else {
-    Write-Host "[-] gity.exe not found in $DestDir" -ForegroundColor Yellow
+    Write-Host "[-] gitcore.exe not found in $DestDir" -ForegroundColor Yellow
 }
 
-Write-Host "`nSSH keys and gity configuration were left untouched for safety."
+Write-Host "`nSSH keys and gitcore configuration were left untouched for safety."
 Write-Host "To remove them manually:"
-Write-Host "  Remove-Item -Recurse -Force `$HOME\.config\gity"
+Write-Host "  Remove-Item -Recurse -Force `$HOME\.config\gitcore"
 Write-Host "  Remove-Item `$HOME\.ssh\id_ed25519_* (Careful!)"
 Write-Host ""

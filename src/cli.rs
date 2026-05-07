@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "gity")]
+#[command(name = "gitcore")]
 #[command(version)]
 #[command(about = "Manage multiple Git accounts safely with SSH keys", long_about = None)]
 pub struct Cli {
@@ -38,7 +38,7 @@ pub enum Commands {
     /// Restore accounts and keys from a backup or JSON
     Restore { file: Option<String> },
 
-    /// Remove an account from Gity
+    /// Remove an account from Gitcore
     Remove { name: Option<String> },
 
     /// Run security audit on keys and permissions

@@ -1,4 +1,4 @@
-use crate::models::GityConfig;
+use crate::models::GitcoreConfig;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -6,28 +6,28 @@ use std::path::PathBuf;
 fn get_config_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("~/.config"))
-        .join("gity")
+        .join("gitcore")
         .join("config.json")
 }
 
-pub fn load_config() -> GityConfig {
+pub fn load_config() -> GitcoreConfig {
     load_config_from_path(&get_config_path())
 }
 
-pub fn load_config_from_path(path: &PathBuf) -> GityConfig {
+pub fn load_config_from_path(path: &PathBuf) -> GitcoreConfig {
     if path.exists() {
         let content = fs::read_to_string(path).unwrap_or_default();
         serde_json::from_str(&content).unwrap_or_default()
     } else {
-        GityConfig::default()
+        GitcoreConfig::default()
     }
 }
 
-pub fn save_config(config: &GityConfig) -> io::Result<()> {
+pub fn save_config(config: &GitcoreConfig) -> io::Result<()> {
     save_config_to_path(config, &get_config_path())
 }
 
-pub fn save_config_to_path(config: &GityConfig, path: &PathBuf) -> io::Result<()> {
+pub fn save_config_to_path(config: &GitcoreConfig, path: &PathBuf) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -55,7 +55,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let config_path = dir.path().join("config.json");
 
-        let mut config = GityConfig::default();
+        let mut config = GitcoreConfig::default();
         config.accounts.push(Account {
             name: "test".to_string(),
             platform: Platform::Github,

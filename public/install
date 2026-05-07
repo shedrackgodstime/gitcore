@@ -1,18 +1,18 @@
 #!/bin/sh
-# gity - Git Account Manager Installation Script
+# gitcore - Git Account Manager Installation Script
 # Supports: Linux, macOS, Android (Termux)
 
 set -e
 
 show_help() {
-    printf "gity installer - Manage multiple Git accounts safely\n\n"
+    printf "gitcore installer - Manage multiple Git accounts safely\n\n"
     printf "Usage:\n"
-    printf "  curl -fsSL https://shedrackgodstime.github.io/gity/install | sh [OPTIONS]\n\n"
+    printf "  curl -fsSL https://shedrackgodstime.github.io/gitcore/install | sh [OPTIONS]\n\n"
     printf "Options:\n"
     printf "  help      Show this help message\n\n"
     printf "Examples:\n"
-    printf "  # Install gity\n"
-    printf "  curl -fsSL https://shedrackgodstime.github.io/gity/install | sh\n"
+    printf "  # Install gitcore\n"
+    printf "  curl -fsSL https://shedrackgodstime.github.io/gitcore/install | sh\n"
     exit 0
 }
 
@@ -22,7 +22,7 @@ for arg in "$@"; do
     esac
 done
 
-printf "\n\033[1;36m[*] Installing gity - Git Account Manager...\033[0m\n"
+printf "\n\033[1;36m[*] Installing gitcore - Git Account Manager...\033[0m\n"
 printf "\033[0;34m--------------------------------------------------\033[0m\n"
 
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -49,11 +49,11 @@ case "$OS" in
     ;;
 esac
 
-ASSET_NAME="gity-${TARGET}.tar.gz"
-RELEASE_URL="https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
+ASSET_NAME="gitcore-${TARGET}.tar.gz"
+RELEASE_URL="https://api.github.com/repos/shedrackgodstime/gitcore/releases/latest"
 
 printf "[*] Fetching latest release...\n"
-DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep "browser_download_url" | grep "gity-${TARGET}" | head -n 1 | cut -d '"' -f 4)
+DOWNLOAD_URL=$(curl -s "$RELEASE_URL" | grep "browser_download_url" | grep "gitcore-${TARGET}" | head -n 1 | cut -d '"' -f 4)
 
 if [ -z "$DOWNLOAD_URL" ]; then
   printf "\033[0;31m[-] Error: Could not find asset $ASSET_NAME\033[0m\n"
@@ -63,10 +63,10 @@ fi
 
 TMP_DIR=$(mktemp -d)
 printf "[+] Downloading $ASSET_NAME...\n"
-curl -sL "$DOWNLOAD_URL" -o "$TMP_DIR/gity.tar.gz"
+curl -sL "$DOWNLOAD_URL" -o "$TMP_DIR/gitcore.tar.gz"
 
 printf "[*] Unpacking...\n"
-tar -xzf "$TMP_DIR/gity.tar.gz" -C "$TMP_DIR"
+tar -xzf "$TMP_DIR/gitcore.tar.gz" -C "$TMP_DIR"
 
 DEST_DIR="/usr/local/bin"
 if [ ! -w "$DEST_DIR" ]; then
@@ -74,21 +74,21 @@ if [ ! -w "$DEST_DIR" ]; then
     mkdir -p "$DEST_DIR"
 fi
 
-cp "$TMP_DIR/gity" "$DEST_DIR/"
-chmod +x "$DEST_DIR/gity"
-printf "[+] Installed gity to $DEST_DIR\n"
+cp "$TMP_DIR/gitcore" "$DEST_DIR/"
+chmod +x "$DEST_DIR/gitcore"
+printf "[+] Installed gitcore to $DEST_DIR\n"
 
 rm -rf "$TMP_DIR"
 
-printf "\033[1;32m[+] Success! gity installed\033[0m\n"
+printf "\033[1;32m[+] Success! gitcore installed\033[0m\n"
 printf "\033[0;34m--------------------------------------------------\033[0m\n"
 
 if echo "$PATH" | grep -q "$DEST_DIR"; then
-    printf " * Add account:   \033[1mgity add\033[0m\n"
-    printf " * List accounts: \033[1mgity list\033[0m\n"
-    printf " * Clone repo:    \033[1mgity clone\033[0m\n"
-    printf " * Security:      \033[1mgity audit\033[0m\n"
-    printf " * Help:          \033[1mgity --help\033[0m\n"
+    printf " * Add account:   \033[1mgitcore add\033[0m\n"
+    printf " * List accounts: \033[1mgitcore list\033[0m\n"
+    printf " * Clone repo:    \033[1mgitcore clone\033[0m\n"
+    printf " * Security:      \033[1mgitcore audit\033[0m\n"
+    printf " * Help:          \033[1mgitcore --help\033[0m\n"
 else
     printf "\033[0;33m[!] Warning: $DEST_DIR not in PATH\033[0m\n"
     
@@ -104,5 +104,5 @@ else
     printf "Then restart your terminal or run: source $RC_FILE\n"
 fi
 
-printf "\n * Uninstall: \033[1mcurl -fsSL https://shedrackgodstime.github.io/gity/uninstall | sh\033[0m\n"
+printf "\n * Uninstall: \033[1mcurl -fsSL https://shedrackgodstime.github.io/gitcore/uninstall | sh\033[0m\n"
 printf "\n"

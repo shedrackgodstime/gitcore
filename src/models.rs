@@ -43,13 +43,13 @@ impl Platform {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct GityConfig {
+pub struct GitcoreConfig {
     pub accounts: Vec<Account>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Vault {
-    pub config: GityConfig,
+    pub config: GitcoreConfig,
     pub keys: Vec<VaultKey>,
 }
 

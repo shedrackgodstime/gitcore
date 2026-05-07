@@ -1,23 +1,23 @@
-# gity - Windows Installation Script
+# gitcore - Windows Installation Script
 param(
     [switch]$Help
 )
 
 if ($Help -or $args.Contains("help") -or $args.Contains("-h")) {
-    Write-Host "gity installer - Manage multiple Git accounts safely" -ForegroundColor Cyan
+    Write-Host "gitcore installer - Manage multiple Git accounts safely" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  iwr https://shedrackgodstime.github.io/gity/ps | iex"
+    Write-Host "  iwr https://shedrackgodstime.github.io/gitcore/ps | iex"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  # Install gity"
-    Write-Host "  iwr https://shedrackgodstime.github.io/gity/ps | iex"
+    Write-Host "  # Install gitcore"
+    Write-Host "  iwr https://shedrackgodstime.github.io/gitcore/ps | iex"
     exit
 }
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "`n[*] Installing gity - Git Account Manager..." -ForegroundColor Cyan
+Write-Host "`n[*] Installing gitcore - Git Account Manager..." -ForegroundColor Cyan
 Write-Host "--------------------------------------------------" -ForegroundColor Blue
 
 $Arch = $Env:PROCESSOR_ARCHITECTURE
@@ -27,8 +27,8 @@ if ($Arch -eq "AMD64") {
     Write-Error "[-] Unsupported Architecture for Windows: $Arch (only x64 supported)"
 }
 
-$AssetName = "gity-${Target}.tar.gz"
-$ReleaseUrl = "https://api.github.com/repos/shedrackgodstime/gity/releases/latest"
+$AssetName = "gitcore-${Target}.tar.gz"
+$ReleaseUrl = "https://api.github.com/repos/shedrackgodstime/gitcore/releases/latest"
 
 Write-Host "[*] Fetching latest release..."
 $Response = Invoke-RestMethod $ReleaseUrl
@@ -38,21 +38,21 @@ if (-not $DownloadUrl) {
     Write-Error "[-] Could not find asset: $AssetName in $ReleaseUrl"
 }
 
-$TempDir = Join-Path $env:TEMP "gity-install-$((Get-Random))"
+$TempDir = Join-Path $env:TEMP "gitcore-install-$((Get-Random))"
 New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
 
 Write-Host "[+] Downloading $AssetName..."
-Invoke-WebRequest -Uri $DownloadUrl -OutFile (Join-Path $TempDir "gity.tar.gz") -UseBasicParsing
+Invoke-WebRequest -Uri $DownloadUrl -OutFile (Join-Path $TempDir "gitcore.tar.gz") -UseBasicParsing
 
 Write-Host "[*] Unpacking..."
-tar -xzf (Join-Path $TempDir "gity.tar.gz") -C $TempDir
+tar -xzf (Join-Path $TempDir "gitcore.tar.gz") -C $TempDir
 
-$DestDir = Join-Path $HOME "AppData\Local\Programs\gity"
+$DestDir = Join-Path $HOME "AppData\Local\Programs\gitcore"
 if (-not (Test-Path $DestDir)) {
     New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
 }
 
-Copy-Item (Join-Path $TempDir "gity.exe") $DestDir
+Copy-Item (Join-Path $TempDir "gitcore.exe") $DestDir
 
 # Update PATH safely
 $UserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
@@ -66,21 +66,21 @@ if ($UserPath -notlike "*$DestDir*") {
     $env:Path += ";$DestDir"
 }
 
-Write-Host "[+] Installed gity to $DestDir" -ForegroundColor Green
+Write-Host "[+] Installed gitcore to $DestDir" -ForegroundColor Green
 
 Remove-Item $TempDir -Recurse -Force
 
 Write-Host ""
-Write-Host "[+] Success! gity installed" -ForegroundColor Green
+Write-Host "[+] Success! gitcore installed" -ForegroundColor Green
 Write-Host "--------------------------------------------------" -ForegroundColor Blue
 Write-Host ""
-Write-Host " * Add account:   gity add" -ForegroundColor White
-Write-Host " * List accounts: gity list" -ForegroundColor White
-Write-Host " * Clone repo:    gity clone" -ForegroundColor White
-Write-Host " * Security:      gity audit" -ForegroundColor White
-Write-Host " * Help:          gity --help" -ForegroundColor White
+Write-Host " * Add account:   gitcore add" -ForegroundColor White
+Write-Host " * List accounts: gitcore list" -ForegroundColor White
+Write-Host " * Clone repo:    gitcore clone" -ForegroundColor White
+Write-Host " * Security:      gitcore audit" -ForegroundColor White
+Write-Host " * Help:          gitcore --help" -ForegroundColor White
 Write-Host ""
-Write-Host " * Restart your terminal to use gity from anywhere" -ForegroundColor Yellow
+Write-Host " * Restart your terminal to use gitcore from anywhere" -ForegroundColor Yellow
 Write-Host ""
-Write-Host " * Uninstall: iwr https://shedrackgodstime.github.io/gity/uninstall-ps | iex" -ForegroundColor Gray
+Write-Host " * Uninstall: iwr https://shedrackgodstime.github.io/gitcore/uninstall-ps | iex" -ForegroundColor Gray
 Write-Host ""

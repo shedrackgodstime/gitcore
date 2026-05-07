@@ -89,11 +89,11 @@ pub fn decrypt_vault(data: &[u8], password: &str) -> io::Result<Vault> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Account, GityConfig, Platform, VaultKey};
+    use crate::models::{Account, GitcoreConfig, Platform, VaultKey};
 
     #[test]
     fn test_vault_encryption_cycle() {
-        let config = GityConfig {
+        let config = GitcoreConfig {
             accounts: vec![Account {
                 name: "test".to_string(),
                 platform: Platform::Github,
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_vault_wrong_password() {
         let vault = Vault {
-            config: GityConfig::default(),
+            config: GitcoreConfig::default(),
             keys: vec![],
         };
         let encrypted = encrypt_vault(vault, "password").unwrap();

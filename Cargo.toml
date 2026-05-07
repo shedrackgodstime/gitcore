@@ -1,7 +1,13 @@
 [package]
-name = "gity"
+name = "gitcore"
 version = "1.2.0"
 edition = "2024"
+description = "A secure, zero-friction Git identity manager for developers who juggle multiple accounts."
+license = "MIT"
+homepage = "https://github.com/shedrackgodstime/gitcore"
+repository = "https://github.com/shedrackgodstime/gitcore"
+keywords = ["git", "ssh", "identity", "account-manager", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -13,8 +19,13 @@ aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.8"
 rpassword = "7"
+
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "gitcore"
+path = "src/main.rs"
 
 [profile.release]
 opt-level = "z"
