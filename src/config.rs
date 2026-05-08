@@ -1,43 +1,45 @@
+use crate::error::Result;
 use crate::models::GitcoreConfig;
 use std::fs;
-use std::io;
 use std::path::PathBuf;
 
-fn get_config_path() -> PathBuf {
+pub fn default_config_path() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("~/.config"))
         .join("gitcore")
         .join("config.json")
 }
 
-pub fn load_config() -> GitcoreConfig {
-    load_config_from_path(&get_config_path())
-}
-
-pub fn load_config_from_path(path: &PathBuf) -> GitcoreConfig {
-    if path.exists() {
-        let content = fs::read_to_string(path).unwrap_or_default();
-        serde_json::from_str(&content).unwrap_or_default()
-    } else {
-        GitcoreConfig::default()
+pub fn load_config_from_path(path: &PathBuf) -> Result<GitcoreConfig> {
+    if !path.exists() {
+        return Ok(GitcoreConfig::default());
     }
+
+    let content = fs::read_to_string(path)?;
+    let config = serde_json::from_str(&content)?;
+    Ok(config)
 }
 
-pub fn save_config(config: &GitcoreConfig) -> io::Result<()> {
-    save_config_to_path(config, &get_config_path())
-}
-
-pub fn save_config_to_path(config: &GitcoreConfig, path: &PathBuf) -> io::Result<()> {
+pub fn save_config_to_path(config: &GitcoreConfig, path: &PathBuf) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
     let content = serde_json::to_string_pretty(config)?;
-    fs::write(path, content)?;
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, content)?;
 
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(path, fs::Permissions::from_mode(0o600));
+        fs::set_permissions(&tmp_path, fs::Permissions::from_mode(0o600))?;
+    }
+
+    fs::rename(&tmp_path, path)?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
     }
 
     Ok(())
@@ -69,7 +71,7 @@ mod tests {
         save_config_to_path(&config, &config_path).unwrap();
         assert!(config_path.exists());
 
-        let loaded = load_config_from_path(&config_path);
+        let loaded = load_config_from_path(&config_path).unwrap();
         assert_eq!(loaded.accounts.len(), 1);
         assert_eq!(loaded.accounts[0].name, "test");
 

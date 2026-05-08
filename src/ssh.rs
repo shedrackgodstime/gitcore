@@ -1,10 +1,10 @@
-use crate::git::run_command;
-use crate::models::{Account, Platform};
-use colored::Colorize;
+use crate::command_runner::{CommandRunner, SystemCommandRunner};
+use crate::git::run_command_with;
+use crate::models::Account;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
-use std::process::{Command, Output};
+use std::path::{Path, PathBuf};
+use std::process::{ExitStatus, Output};
 
 pub fn get_ssh_dir() -> PathBuf {
     dirs::home_dir()
@@ -12,9 +12,8 @@ pub fn get_ssh_dir() -> PathBuf {
         .join(".ssh")
 }
 
-pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
-    let ssh_dir = get_ssh_dir();
-    fs::create_dir_all(&ssh_dir)?;
+pub fn update_ssh_config_in_dir(accounts: &[Account], ssh_dir: &Path) -> io::Result<()> {
+    fs::create_dir_all(ssh_dir)?;
     let config_path = ssh_dir.join("config");
     const START_MARKER: &str = "# >>> gitcore managed block >>>";
     const END_MARKER: &str = "# <<< gitcore managed block <<<";
@@ -68,27 +67,51 @@ pub fn update_ssh_config(accounts: &[Account]) -> io::Result<()> {
         format!("{}\n\n{}", existing.trim_end(), managed_block)
     };
 
-    fs::write(&config_path, new_content)?;
+    let tmp_path = config_path.with_extension("tmp");
+    fs::write(&tmp_path, new_content)?;
 
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&config_path, fs::Permissions::from_mode(0o600));
+        fs::set_permissions(&tmp_path, fs::Permissions::from_mode(0o600))?;
     }
 
-    println!("{}", "Success: SSH config updated".green());
+    fs::rename(&tmp_path, &config_path)?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&config_path, fs::Permissions::from_mode(0o600))?;
+    }
+
     Ok(())
 }
 
 pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Result<String> {
-    let ssh_dir = get_ssh_dir();
+    generate_ssh_key_in_dir(&get_ssh_dir(), key_path, email, passphrase)
+}
+
+pub fn generate_ssh_key_in_dir(
+    ssh_dir: &Path,
+    key_path: &str,
+    email: &str,
+    passphrase: &str,
+) -> io::Result<String> {
+    generate_ssh_key_in_dir_with(&SystemCommandRunner, ssh_dir, key_path, email, passphrase)
+}
+
+pub(crate) fn generate_ssh_key_in_dir_with(
+    runner: &dyn CommandRunner,
+    ssh_dir: &Path,
+    key_path: &str,
+    email: &str,
+    passphrase: &str,
+) -> io::Result<String> {
     let key_full = ssh_dir.join(key_path);
 
-    if key_full.exists() {
-        println!("{}", "Key already exists, using existing key".yellow());
-    } else {
-        println!("{}", "[*] Generating SSH key...".cyan());
-        run_command(
+    if !key_full.exists() {
+        run_command_with(
+            runner,
             "ssh-keygen",
             &[
                 "-t",
@@ -105,19 +128,9 @@ pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Re
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let _ = fs::set_permissions(&key_full, fs::Permissions::from_mode(0o600));
+            fs::set_permissions(&key_full, fs::Permissions::from_mode(0o600))?;
             let pub_key_path = ssh_dir.join(format!("{}.pub", key_path));
-            let _ = fs::set_permissions(&pub_key_path, fs::Permissions::from_mode(0o644));
-        }
-
-        println!("{}", "Success: SSH key generated".green());
-        if passphrase.is_empty() {
-            println!(
-                "{}",
-                "Warning: No passphrase - key is not protected".yellow()
-            );
-        } else {
-            println!("{}", "Success: Key is protected with passphrase".green());
+            fs::set_permissions(&pub_key_path, fs::Permissions::from_mode(0o644))?;
         }
     }
 
@@ -126,12 +139,14 @@ pub fn generate_ssh_key(key_path: &str, email: &str, passphrase: &str) -> io::Re
     Ok(pub_key)
 }
 
-pub fn delete_account_keys(name: &str) -> io::Result<Vec<PathBuf>> {
-    let ssh_dir = get_ssh_dir();
-    let key_name = format!("id_ed25519_{}", name);
+pub fn delete_account_keys(key_path: &str) -> io::Result<Vec<PathBuf>> {
+    delete_account_keys_in_dir(&get_ssh_dir(), key_path)
+}
+
+pub fn delete_account_keys_in_dir(ssh_dir: &Path, key_path: &str) -> io::Result<Vec<PathBuf>> {
     let paths = [
-        ssh_dir.join(&key_name),
-        ssh_dir.join(format!("{}.pub", key_name)),
+        ssh_dir.join(key_path),
+        ssh_dir.join(format!("{}.pub", key_path)),
     ];
 
     let mut deleted = Vec::new();
@@ -145,9 +160,13 @@ pub fn delete_account_keys(name: &str) -> io::Result<Vec<PathBuf>> {
     Ok(deleted)
 }
 
-pub fn test_ssh_connection(host_alias: &str) -> io::Result<Output> {
-    Command::new("ssh")
-        .args([
+pub(crate) fn test_ssh_connection_with(
+    runner: &dyn CommandRunner,
+    host_alias: &str,
+) -> io::Result<Output> {
+    runner.run(
+        "ssh",
+        &[
             "-o",
             "BatchMode=yes",
             "-o",
@@ -156,13 +175,62 @@ pub fn test_ssh_connection(host_alias: &str) -> io::Result<Output> {
             "StrictHostKeyChecking=accept-new",
             "-T",
             host_alias,
-        ])
-        .output()
+        ],
+    )
 }
 
-pub fn check_host_key(platform_host: &str) -> HostKeyStatus {
-    let known_hosts_path = get_ssh_dir().join("known_hosts");
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SshConnectionState {
+    Authenticated,
+    ConnectedWithoutShell,
+    Failed,
+}
 
+#[derive(Debug, Clone)]
+pub struct SshConnectionProbe {
+    pub status: ExitStatus,
+    pub stderr: String,
+    pub state: SshConnectionState,
+}
+
+pub(crate) fn probe_ssh_connection_with(
+    runner: &dyn CommandRunner,
+    host_alias: &str,
+) -> io::Result<SshConnectionProbe> {
+    let output = test_ssh_connection_with(runner, host_alias)?;
+    Ok(parse_ssh_connection_probe(output))
+}
+
+fn parse_ssh_connection_probe(output: Output) -> SshConnectionProbe {
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    let state = classify_ssh_connection(&output.status, &stderr);
+
+    SshConnectionProbe {
+        status: output.status,
+        stderr,
+        state,
+    }
+}
+
+fn classify_ssh_connection(status: &ExitStatus, stderr: &str) -> SshConnectionState {
+    let stderr = stderr.trim();
+    let authenticated = stderr.contains("successfully authenticated")
+        || stderr.starts_with("Hi ")
+        || stderr.starts_with("Welcome to GitLab")
+        || stderr.contains("Shell access is not supported")
+        || stderr.contains("does not provide shell access");
+
+    if authenticated {
+        SshConnectionState::Authenticated
+    } else if status.success() {
+        SshConnectionState::ConnectedWithoutShell
+    } else {
+        SshConnectionState::Failed
+    }
+}
+
+pub fn check_host_key_in_dir(ssh_dir: &Path, platform_host: &str) -> HostKeyStatus {
+    let known_hosts_path = ssh_dir.join("known_hosts");
     if !known_hosts_path.exists() {
         return HostKeyStatus::Unknown;
     }
@@ -186,11 +254,36 @@ pub enum HostKeyStatus {
     Unknown,
 }
 
-pub fn provider_key_url(platform: &Platform) -> &'static str {
-    match platform {
-        Platform::Github => "https://github.com/settings/keys",
-        Platform::Gitlab => "https://gitlab.com/-/profile/keys",
-        Platform::Codeberg => "https://codeberg.org/user/keys",
-        Platform::Bitbucket => "https://bitbucket.org/account/settings/ssh-keys/",
+#[cfg(test)]
+mod tests {
+    use super::{SshConnectionState, classify_ssh_connection};
+    #[cfg(unix)]
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(windows)]
+    use std::os::windows::process::ExitStatusExt;
+    use std::process::ExitStatus;
+
+    #[test]
+    fn classifies_github_auth_message_as_authenticated() {
+        let status = ExitStatus::from_raw(255);
+        let state = classify_ssh_connection(
+            &status,
+            "Hi octocat! You've successfully authenticated, but GitHub does not provide shell access.",
+        );
+        assert_eq!(state, SshConnectionState::Authenticated);
+    }
+
+    #[test]
+    fn classifies_success_exit_without_auth_banner() {
+        let status = ExitStatus::from_raw(0);
+        let state = classify_ssh_connection(&status, "");
+        assert_eq!(state, SshConnectionState::ConnectedWithoutShell);
+    }
+
+    #[test]
+    fn classifies_permission_denied_as_failed() {
+        let status = ExitStatus::from_raw(255);
+        let state = classify_ssh_connection(&status, "Permission denied (publickey).");
+        assert_eq!(state, SshConnectionState::Failed);
     }
 }

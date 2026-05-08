@@ -1,63 +1,43 @@
 # Gitcore
 
-**A secure, zero-friction Git identity manager for developers who juggle multiple accounts.**
+**High-assurance Git identity management for multi-tenant developer environments.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Built%20with-Rust-orange.svg)](https://www.rust-lang.org/)
 [![Release](https://img.shields.io/github/v/release/shedrackgodstime/gitcore)](https://github.com/shedrackgodstime/gitcore/releases)
-[![Binary Size](https://img.shields.io/badge/Binary%20Size-815KB-brightgreen.svg)](https://github.com/shedrackgodstime/gitcore/releases)
 
 ```text
   gitcore list
 
-  Configured Git Accounts
-  =======================
+  Configured Identities
+  =====================
 
-  [1] work
-      Platform: Github
-      Host:     github-work
-      User:     shedrackgodstime
-      Email:    shedrackgodstime@gmail.com
-      GPG:      8B92A1C3
-      Use:      git clone git@github-work:user/repo.git
-
-  [2] personal
-      Platform: Codeberg
-      Host:     codeberg-personal
-      User:     godstime_dev
-      Email:    godstime@proton.me
-      Use:      git clone git@codeberg-personal:user/repo.git
+  [1] work      (Github)    -> git@github-work:user/repo.git
+  [2] personal  (Codeberg)  -> git@codeberg-personal:user/repo.git
 ```
 
 ---
 
-## Why Gitcore?
+## The Problem: Identity Contamination
 
-Standard Git and OpenSSH configurations are designed for a single global identity. For developers managing multiple accounts (e.g., Work, Personal, Open Source), this "one-size-fits-all" approach is fundamentally insufficient. It frequently results in mismatched authorship metadata (incorrect email in commits) and SSH authentication conflicts (incorrect key selection).
+Standard Git and OpenSSH configurations are fundamentally designed for a single global identity. For engineers managing disparate personas (Corporate, Personal, Open Source), this often leads to:
+*   **Authorship Leakage**: Personal emails appearing in enterprise commits.
+*   **Authentication Conflict**: SSH handshake failures due to incorrect key selection.
+*   **Credential Sprawl**: Unmanaged, unrotated keys scattered across the filesystem.
 
-Gitcore introduces a dedicated **identity layer** that isolates each account. By automating the mapping between local repositories, specific SSH keys, and signing identities, Gitcore ensures that every operation is performed with the correct persona, with zero manual overhead.
-
----
-
-## What Gitcore Does
-
-Gitcore is a CLI tool written in Rust that acts as a complete Git identity manager. It isolates each account with its own SSH key, automatically manages `~/.ssh/config` for seamless authentication, and provides commands that integrate identity awareness into standard `clone`, `push`, and `remote` workflows.
-
-It also provides a secure, portable vault — a single encrypted file containing your entire configuration and private keys — allowing for instantaneous environment restoration on new machines.
+Gitcore solves this by introducing a **deterministic identity layer** that cryptographically isolates each account.
 
 ---
 
-## Key Features
+## Core Capabilities
 
-| Feature | Description |
-|---|---|
-| **Isolated SSH Keys** | Generates a unique Ed25519 key per account to prevent identity cross-contamination. |
-| **Automated SSH Config** | Manages a dedicated Gitcore block in `~/.ssh/config`. Existing entries remain untouched. |
-| **Encrypted Vault** | Secures your identity in a single `.gitcore` archive encrypted with AES-256-GCM and Argon2id. |
-| **GPG Signing** | Integrated GPG key association. Commit signing is configured automatically on `clone` and `remote switch`. |
-| **URL Resolution** | Transparently rewrites GitHub, GitLab, Codeberg, and Bitbucket URLs to use correct host aliases. |
-| **Security Audit** | Validates file permissions and identifies potential configuration risks. |
-| **Zero Dependencies** | Distributed as a statically linked binary with no external runtime requirements. |
+Gitcore provides a unified engine for managing the entire lifecycle of a Git identity, available as both a high-performance **CLI tool** and a **programmatic Rust SDK**.
+
+*   **Deterministic Isolation**: Every identity is pinned to a unique Ed25519 keypair, preventing cross-contamination during authentication.
+*   **Managed SSH Orchestration**: Automatically maintains a non-destructive block in `~/.ssh/config`, enabling seamless usage of standard `git` commands.
+*   **Authorship Protection**: Automatically injects correct `user.name`, `user.email`, and GPG signing keys into local repository configurations.
+*   **Zero-Friction Context**: Detects the active identity in the current directory with `gitcore whoami`.
+*   **Encrypted Portability**: Encapsulates your entire identity environment into a single AES-256-GCM encrypted vault for secure migration.
 
 ---
 
@@ -136,10 +116,12 @@ gitcore remote switch personal
 |---------|-------------|
 | `gitcore add <name> <platform>` | Create a new identity and generate SSH keys |
 | `gitcore list` | List configured identities and connection strings |
+| `gitcore whoami` | Identify the active Gitcore account in the current repository |
 | `gitcore clone [repo]` | Clone a repository with automatic identity injection |
 | `gitcore test [host_alias]` | Validate SSH authentication (e.g. `gitcore test github-work`) |
 | `gitcore remote add` | Configure an identity-aware remote for a repository |
 | `gitcore remote switch` | Transition a repository to a different Gitcore identity |
+| `gitcore update <name>` | Modify account metadata (email, GPG key) without re-registration |
 | `gitcore export [file]` | Export your entire identity to an encrypted vault |
 | `gitcore import [file]` | Restore an entire environment from a vault or JSON |
 | `gitcore audit` | Perform security verification on keys and configurations |
@@ -185,6 +167,25 @@ When executing `git clone git@github-work:user/repo.git`, OpenSSH automatically 
 - **Authenticated Encryption**: The vault uses AES-256-GCM, ensuring both confidentiality and cryptographic integrity.
 
 ---
+
+## Library Usage
+
+Gitcore is built for integration. You can use the `gitcore` crate to manage Git identities programmatically in your own Rust projects.
+
+```rust
+use gitcore::{Gitcore, AddAccountRequest, Platform};
+
+let service = Gitcore::new();
+service.register_account(AddAccountRequest {
+    name: "work".to_string(),
+    platform: Platform::Github,
+    username: "octocat".to_string(),
+    email: "octocat@example.com".to_string(),
+    ..Default::default()
+})?;
+```
+
+For full library documentation, see [docs/LIBRARY_USAGE.md](docs/LIBRARY_USAGE.md).
 
 ## Supported Platforms
 

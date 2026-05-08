@@ -46,6 +46,12 @@ pub enum Commands {
 
     /// Rotate the SSH key for an account
     Rotate { name: Option<String> },
+
+    /// Update account details (username, email, GPG key)
+    Update { name: Option<String> },
+
+    /// Show the active Gitcore account for the current directory
+    Whoami,
 }
 
 #[derive(Subcommand)]

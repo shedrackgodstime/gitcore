@@ -1,5 +1,5 @@
+use crate::command_runner::{CommandRunner, SystemCommandRunner};
 use std::io;
-use std::process::Command;
 
 pub struct GpgKey {
     pub id: String,
@@ -8,12 +8,13 @@ pub struct GpgKey {
 }
 
 pub fn list_gpg_keys() -> io::Result<Vec<GpgKey>> {
-    let output = match Command::new("gpg")
-        .args(["--list-secret-keys", "--keyid-format", "LONG"])
-        .output()
-    {
+    list_gpg_keys_with(&SystemCommandRunner)
+}
+
+pub(crate) fn list_gpg_keys_with(runner: &dyn CommandRunner) -> io::Result<Vec<GpgKey>> {
+    let output = match runner.run("gpg", &["--list-secret-keys", "--keyid-format", "LONG"]) {
         Ok(out) => out,
-        Err(_) => return Ok(Vec::new()), // GPG not installed or not in PATH
+        Err(_) => return Ok(Vec::new()),
     };
 
     if !output.status.success() {

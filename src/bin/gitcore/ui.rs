@@ -1,5 +1,5 @@
-use crate::models::Account;
 use colored::Colorize;
+use gitcore::{Account, GpgKey};
 use std::io::{self, Write};
 
 pub fn prompt_input(prompt: &str) -> io::Result<String> {
@@ -47,7 +47,7 @@ pub fn select_file(files: &[String], title: &str) -> io::Result<Option<usize>> {
     select_from_list(files, title, "Select backup file")
 }
 
-pub fn select_gpg_key(keys: &[crate::gpg::GpgKey], title: &str) -> io::Result<Option<usize>> {
+pub fn select_gpg_key(keys: &[GpgKey], title: &str) -> io::Result<Option<usize>> {
     let items: Vec<String> = keys
         .iter()
         .map(|key| format!("{} ({}) - {}", key.name, key.email, key.id))

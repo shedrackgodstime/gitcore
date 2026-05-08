@@ -1,36 +1,44 @@
+use crate::command_runner::CommandRunner;
 use std::io;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::Output;
 
-fn command_error(command: &str, output: &Output) -> io::Error {
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let detail = if !stderr.is_empty() {
-        stderr
-    } else if !stdout.is_empty() {
-        stdout
-    } else {
-        format!("exit status: {}", output.status)
-    };
-
-    io::Error::other(format!("{command}: {detail}"))
+pub(crate) struct GitIdentityConfig<'a> {
+    pub(crate) username: &'a str,
+    pub(crate) email: &'a str,
+    pub(crate) gpg_key_id: Option<&'a str>,
 }
 
-pub fn run_command(command: &str, args: &[&str]) -> io::Result<Output> {
-    let output = Command::new(command).args(args).output()?;
-    if output.status.success() {
-        Ok(output)
-    } else {
-        Err(command_error(command, &output))
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum GitRemoteMutation {
+    Added,
+    Updated,
 }
 
-pub fn run_git(args: &[&str]) -> io::Result<Output> {
-    run_command("git", args)
+pub(crate) fn run_command_with(
+    runner: &dyn CommandRunner,
+    command: &str,
+    args: &[&str],
+) -> io::Result<Output> {
+    runner.run_checked(command, args)
 }
 
-pub fn ensure_git_repository(path: &Path) -> bool {
-    run_git(&["-C", path.to_str().unwrap_or("."), "rev-parse", "--git-dir"]).is_ok()
+pub(crate) fn run_git_with(runner: &dyn CommandRunner, args: &[&str]) -> io::Result<Output> {
+    run_command_with(runner, "git", args)
+}
+
+pub(crate) fn run_git_in_with(
+    runner: &dyn CommandRunner,
+    path: &Path,
+    args: &[&str],
+) -> io::Result<Output> {
+    let mut git_args = vec!["-C", path.to_str().unwrap_or(".")];
+    git_args.extend_from_slice(args);
+    run_git_with(runner, &git_args)
+}
+
+pub(crate) fn ensure_git_repository_with(runner: &dyn CommandRunner, path: &Path) -> bool {
+    run_git_in_with(runner, path, &["rev-parse", "--git-dir"]).is_ok()
 }
 
 pub fn convert_to_host(url: &str, host_alias: &str) -> String {
@@ -82,31 +90,77 @@ fn is_known_provider(host: &str) -> bool {
         || host.contains("bitbucket.org")
 }
 
-pub fn set_git_config(username: &str, email: &str, gpg_key_id: Option<&str>) -> io::Result<()> {
-    run_git(&["config", "user.name", username])?;
-    run_git(&["config", "user.email", email])?;
+pub(crate) fn clone_repository_in_worktree_with(
+    runner: &dyn CommandRunner,
+    working_dir: &Path,
+    remote_url: &str,
+) -> io::Result<()> {
+    run_git_in_with(runner, working_dir, &["clone", remote_url]).map(|_| ())
+}
 
-    if let Some(key_id) = gpg_key_id {
-        run_git(&["config", "user.signingkey", key_id])?;
-        run_git(&["config", "commit.gpgsign", "true"])?;
-    } else {
-        // Optional: disable signing if no key is provided,
-        // but usually we just leave existing config alone if not explicitly managing it.
+pub(crate) fn configure_repository_identity_with(
+    runner: &dyn CommandRunner,
+    repo_path: &Path,
+    identity: GitIdentityConfig<'_>,
+) -> io::Result<()> {
+    run_git_in_with(
+        runner,
+        repo_path,
+        &["config", "user.name", identity.username],
+    )?;
+    run_git_in_with(runner, repo_path, &["config", "user.email", identity.email])?;
+
+    if let Some(key_id) = identity.gpg_key_id {
+        run_git_in_with(runner, repo_path, &["config", "user.signingkey", key_id])?;
+        run_git_in_with(runner, repo_path, &["config", "commit.gpgsign", "true"])?;
     }
+
     Ok(())
 }
 
-pub fn run_git_remote_add(url: &str) -> io::Result<()> {
-    match run_git(&["remote", "add", "origin", url]) {
-        Ok(_) => Ok(()),
-        Err(add_err) => match run_git(&["remote", "set-url", "origin", url]) {
-            Ok(_) => Ok(()),
+pub(crate) fn attach_origin_remote_with(
+    runner: &dyn CommandRunner,
+    repo_path: &Path,
+    url: &str,
+) -> io::Result<GitRemoteMutation> {
+    match run_git_in_with(runner, repo_path, &["remote", "add", "origin", url]) {
+        Ok(_) => Ok(GitRemoteMutation::Added),
+        Err(add_err) => match set_origin_remote_with(runner, repo_path, url) {
+            Ok(_) => Ok(GitRemoteMutation::Updated),
             Err(set_err) => Err(io::Error::other(format!(
                 "{}; fallback set-url also failed: {}",
                 add_err, set_err
             ))),
         },
     }
+}
+
+pub(crate) fn set_origin_remote_with(
+    runner: &dyn CommandRunner,
+    repo_path: &Path,
+    url: &str,
+) -> io::Result<()> {
+    run_git_in_with(runner, repo_path, &["remote", "set-url", "origin", url]).map(|_| ())
+}
+
+pub(crate) struct GitRemoteUrl {
+    value: String,
+}
+
+impl GitRemoteUrl {
+    pub(crate) fn as_str(&self) -> &str {
+        &self.value
+    }
+}
+
+pub(crate) fn get_origin_remote_with(
+    runner: &dyn CommandRunner,
+    repo_path: &Path,
+) -> io::Result<GitRemoteUrl> {
+    let output = run_git_in_with(runner, repo_path, &["remote", "get-url", "origin"])?;
+    Ok(GitRemoteUrl {
+        value: String::from_utf8_lossy(&output.stdout).trim().to_string(),
+    })
 }
 
 #[cfg(test)]
