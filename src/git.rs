@@ -41,6 +41,10 @@ pub(crate) fn ensure_git_repository_with(runner: &dyn CommandRunner, path: &Path
     run_git_in_with(runner, path, &["rev-parse", "--git-dir"]).is_ok()
 }
 
+pub(crate) fn init_repository_with(runner: &dyn CommandRunner, path: &Path) -> io::Result<()> {
+    run_git_in_with(runner, path, &["init"]).map(|_| ())
+}
+
 pub fn convert_to_host(url: &str, host_alias: &str) -> String {
     let url = url.trim().trim_end_matches(".git");
 

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-10
+
+### Added
+- **Auto-Initialization**: `gitcore remote add` now offers to run `git init` if the target path is not a Git repository.
+- **Repository Initialization API**: Added `Gitcore::init_git_repo` to the public service for programmatic repository initialization.
+
+### Changed
+- **Error Messaging**: Improved the error message when a path is not a Git repository to suggest running `git init`.
+
 ## [1.3.0] - 2026-05-08
 
 ### Added

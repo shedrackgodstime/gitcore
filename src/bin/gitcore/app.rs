@@ -230,14 +230,44 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     if let Ok(account) = service.find_account_by_host_alias(alias) {
                         let report = match service.add_remote(gitcore::RemoteAddRequest {
                             account_name: account.name.clone(),
-                            repo_url: url,
+                            repo_url: url.clone(),
                             repo_path: repo_path.clone(),
                         }) {
                             Ok(report) => report,
                             Err(err) => {
-                                println!("{}", "[x] Failed to configure origin remote".red());
-                                println!("   {}", err);
-                                return Ok(());
+                                if let gitcore::GitcoreError::NotGitRepository(ref path) = err {
+                                    println!("{}", "[x] Failed to configure origin remote".red());
+                                    println!("   {}", err);
+                                    println!();
+                                    if confirm(&format!(
+                                        "Would you like to initialize a new Git repository in {}?",
+                                        path.display().to_string().cyan()
+                                    ))? {
+                                        service.init_git_repo(path).map_err(io::Error::other)?;
+                                        match service.add_remote(gitcore::RemoteAddRequest {
+                                            account_name: account.name.clone(),
+                                            repo_url: url,
+                                            repo_path,
+                                        }) {
+                                            Ok(report) => report,
+                                            Err(err) => {
+                                                println!(
+                                                    "{}",
+                                                    "[x] Failed to configure origin remote after initialization"
+                                                        .red()
+                                                );
+                                                println!("   {}", err);
+                                                return Ok(());
+                                            }
+                                        }
+                                    } else {
+                                        return Ok(());
+                                    }
+                                } else {
+                                    println!("{}", "[x] Failed to configure origin remote".red());
+                                    println!("   {}", err);
+                                    return Ok(());
+                                }
                             }
                         };
                         print_result(&report.remote_url, &report.username, &report.email);
@@ -258,14 +288,44 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     .unwrap_or_else(|| prompt_input("Enter repository URL: ").unwrap_or_default());
                 let report = match service.add_remote(gitcore::RemoteAddRequest {
                     account_name: selected_acc.name.clone(),
-                    repo_url: final_repo,
-                    repo_path,
+                    repo_url: final_repo.clone(),
+                    repo_path: repo_path.clone(),
                 }) {
                     Ok(report) => report,
                     Err(err) => {
-                        println!("{}", "[x] Failed to configure origin remote".red());
-                        println!("   {}", err);
-                        return Ok(());
+                        if let gitcore::GitcoreError::NotGitRepository(ref path) = err {
+                            println!("{}", "[x] Failed to configure origin remote".red());
+                            println!("   {}", err);
+                            println!();
+                            if confirm(&format!(
+                                "Would you like to initialize a new Git repository in {}?",
+                                path.display().to_string().cyan()
+                            ))? {
+                                service.init_git_repo(path).map_err(io::Error::other)?;
+                                match service.add_remote(gitcore::RemoteAddRequest {
+                                    account_name: selected_acc.name.clone(),
+                                    repo_url: final_repo,
+                                    repo_path,
+                                }) {
+                                    Ok(report) => report,
+                                    Err(err) => {
+                                        println!(
+                                            "{}",
+                                            "[x] Failed to configure origin remote after initialization"
+                                                .red()
+                                        );
+                                        println!("   {}", err);
+                                        return Ok(());
+                                    }
+                                }
+                            } else {
+                                return Ok(());
+                            }
+                        } else {
+                            println!("{}", "[x] Failed to configure origin remote".red());
+                            println!("   {}", err);
+                            return Ok(());
+                        }
                     }
                 };
                 print_result(&report.remote_url, &report.username, &report.email);

@@ -254,6 +254,12 @@ pub struct KeyDeletionReport {
 }
 
 impl Gitcore {
+    /// Initializes a new Git repository at the specified path.
+    pub fn init_git_repo(&self, path: &Path) -> Result<()> {
+        git::init_repository_with(self.runner(), path)?;
+        Ok(())
+    }
+
     /// Creates a library instance using the default user paths.
     #[must_use]
     pub fn new() -> Self {

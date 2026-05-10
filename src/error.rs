@@ -41,7 +41,7 @@ pub enum GitcoreError {
     #[error("password cannot be empty")]
     EmptyPassword,
 
-    #[error("path is not a git repository: {0}")]
+    #[error("path is not a git repository: {0} (Did you forget to run 'git init'?)")]
     NotGitRepository(PathBuf),
 
     #[error("origin remote could not be read for repository: {0}")]
