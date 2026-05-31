@@ -32,12 +32,54 @@ impl Gitcore {
         for key_audit in &key_audits {
             if !key_audit.private_key.exists {
                 issues.push(format!("SSH key missing: {}", key_audit.account.key_path));
+            } else if let Some(perms) = key_audit
+                .private_key
+                .permissions
+                .filter(|&p| p != key_audit.private_key.expected_permissions)
+            {
+                issues.push(format!(
+                    "SSH private key '{}' has insecure permissions ({:o}, expected {:o})",
+                    key_audit.account.key_path, perms, key_audit.private_key.expected_permissions
+                ));
+            }
+
+            if let Some(perms) = key_audit
+                .public_key
+                .permissions
+                .filter(|&p| p != key_audit.public_key.expected_permissions)
+            {
+                issues.push(format!(
+                    "SSH public key '{}.pub' has insecure permissions ({:o}, expected {:o})",
+                    key_audit.account.key_path, perms, key_audit.public_key.expected_permissions
+                ));
             }
         }
-        if !ssh_config.exists {
+
+        if ssh_config.exists {
+            if let Some(perms) = ssh_config
+                .permissions
+                .filter(|&p| p != ssh_config.expected_permissions)
+            {
+                issues.push(format!(
+                    "SSH config file has insecure permissions ({:o}, expected {:o})",
+                    perms, ssh_config.expected_permissions
+                ));
+            }
+        } else {
             issues.push("SSH config file missing".to_string());
         }
-        if !config_file.exists {
+
+        if config_file.exists {
+            if let Some(perms) = config_file
+                .permissions
+                .filter(|&p| p != config_file.expected_permissions)
+            {
+                issues.push(format!(
+                    "Gitcore config file has insecure permissions ({:o}, expected {:o})",
+                    perms, config_file.expected_permissions
+                ));
+            }
+        } else {
             issues.push("Gitcore config file missing".to_string());
         }
 

@@ -65,7 +65,7 @@ pub(crate) fn restore_backup_keys(
     keys: Vec<VaultKey>,
     ssh_dir: &Path,
 ) -> std::io::Result<RestoredKeyMaterial> {
-    fs::create_dir_all(ssh_dir)?;
+    ssh::ensure_ssh_dir(ssh_dir)?;
 
     let mut restored_keys = Vec::new();
     for key in keys {

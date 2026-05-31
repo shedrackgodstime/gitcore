@@ -21,6 +21,9 @@ pub fn prompt_password(prompt: &str) -> io::Result<String> {
 }
 
 fn select_from_list(items: &[String], title: &str, prompt: &str) -> io::Result<Option<usize>> {
+    if items.is_empty() {
+        return Ok(None);
+    }
     println!("{}", title.cyan());
     for (i, item) in items.iter().enumerate() {
         println!("  [{}] {}", i + 1, item);

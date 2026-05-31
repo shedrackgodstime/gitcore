@@ -59,4 +59,4 @@ pub use service::{
     RemoteAddRequest, RemoteReport, RemoteSwitchRequest, RestoreReport, RotationReport,
     SshTestReport, UpdateAccountRequest,
 };
-pub use ssh::{HostKeyStatus, delete_account_keys, generate_ssh_key};
+pub use ssh::{HostKeyStatus, delete_account_keys, generate_ssh_key, get_ssh_dir};

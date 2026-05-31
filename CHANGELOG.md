@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-05-31
+
+### Added
+- **Security Audit Permission Verification**: The security audit command now collects and prints warnings for incorrect or insecure permissions on SSH keys and configs in its issue summary.
+- **Locale-Independent GPG Parsing**: Migrated GPG listing command to parse GPG's `--with-colons` machine-readable output format, ensuring correct execution under any system locale setting.
+- **Self-Healing SSH Config**: The configuration parser automatically detects and repairs dangling or malformed managed blocks.
+- **Strict SSH Directory Permissions**: Enforces secure Unix permissions (`0700` / `rwx------`) on target SSH directories programmatically during SSH key generation and vault recovery.
+- **Descriptive Binary Diagnostics**: Diagnostics now report precise error messages if standard binaries (`git`, `ssh-keygen`, `ssh`) are missing from the system's `PATH`.
+
+### Changed
+- **Clone CLI Context Sequence**: Active configuration details are now printed prior to the clone process starting, improving CLI responsiveness during long operations or prompts.
+- **Defensive URL parsing**: Repository directory matching now safely matches non-empty path segments and falls back to a safe folder name, preventing directory traversal and workspace pollution.
+
 ## [1.4.0] - 2026-05-10
 
 ### Added

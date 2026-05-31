@@ -287,6 +287,44 @@ fn audit_reports_missing_private_keys() {
 }
 
 #[test]
+#[cfg(unix)]
+fn audit_reports_incorrect_file_permissions() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (service, _dir) = service_with_temp_paths();
+    let registered = service.register_account(sample_request("work")).unwrap();
+
+    let private_path = service.paths().ssh_dir.join(&registered.account.key_path);
+    let public_path = service
+        .paths()
+        .ssh_dir
+        .join(format!("{}.pub", registered.account.key_path));
+
+    // Create the key files
+    fs::create_dir_all(&service.paths().ssh_dir).unwrap();
+    fs::write(&private_path, "PRIVATE").unwrap();
+    fs::write(&public_path, "PUBLIC").unwrap();
+
+    // Set insecure permissions (0o777 instead of 0o600 for private, 0o755 instead of 0o644 for public)
+    fs::set_permissions(&private_path, fs::Permissions::from_mode(0o777)).unwrap();
+    fs::set_permissions(&public_path, fs::Permissions::from_mode(0o755)).unwrap();
+
+    // Set insecure permissions on the config file
+    fs::set_permissions(
+        &service.paths().config_path,
+        fs::Permissions::from_mode(0o777),
+    )
+    .unwrap();
+
+    let report = service.audit().unwrap();
+
+    let issues_str = report.issues.join("\n");
+    assert!(issues_str.contains("insecure permissions"));
+    assert!(issues_str.contains("id_ed25519_work"));
+    assert!(issues_str.contains("Gitcore config file"));
+}
+
+#[test]
 fn ssh_report_shape_can_be_built_without_network() {
     let (service, _dir) = service_with_temp_paths();
     let registered = service.register_account(sample_request("work")).unwrap();
@@ -452,4 +490,40 @@ fn register_account_with_custom_key_path() {
     assert_eq!(report.account.key_path, "custom_id_rsa");
     let config = service.load_config().unwrap();
     assert_eq!(config.accounts[0].key_path, "custom_id_rsa");
+}
+
+#[test]
+fn clone_repository_defensive_path_resolution() {
+    let runner = Arc::new(FakeCommandRunner::from_outputs(vec![
+        output(0, "", ""),
+        output(0, "", ""),
+        output(0, "", ""),
+        output(0, "", ""),
+        output(0, "", ""),
+        output(0, "", ""),
+    ]));
+    let (service, dir) = service_with_runner(runner.clone());
+    service.register_account(sample_request("work")).unwrap();
+
+    let working_dir = dir.path().join("worktrees");
+
+    // Test a trailing slash URL: "https://github.com/acme/project/"
+    let report1 = service
+        .clone_repository(CloneRequest {
+            account_name: "work".to_string(),
+            repo_url: "https://github.com/acme/project/".to_string(),
+            working_dir: working_dir.clone(),
+        })
+        .unwrap();
+    assert_eq!(report1.repo_path, working_dir.join("project"));
+
+    // Test an empty URL (should resolve to fallback "repo")
+    let report2 = service
+        .clone_repository(CloneRequest {
+            account_name: "work".to_string(),
+            repo_url: "".to_string(),
+            working_dir: working_dir.clone(),
+        })
+        .unwrap();
+    assert_eq!(report2.repo_path, working_dir.join("repo"));
 }

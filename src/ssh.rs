@@ -12,8 +12,24 @@ pub fn get_ssh_dir() -> PathBuf {
         .join(".ssh")
 }
 
-pub fn update_ssh_config_in_dir(accounts: &[Account], ssh_dir: &Path) -> io::Result<()> {
+pub(crate) fn ensure_ssh_dir(ssh_dir: &Path) -> io::Result<()> {
     fs::create_dir_all(ssh_dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(metadata) = fs::metadata(ssh_dir) {
+            let mut perms = metadata.permissions();
+            if perms.mode() & 0o777 != 0o700 {
+                perms.set_mode(0o700);
+                let _ = fs::set_permissions(ssh_dir, perms);
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn update_ssh_config_in_dir(accounts: &[Account], ssh_dir: &Path) -> io::Result<()> {
+    ensure_ssh_dir(ssh_dir)?;
     let config_path = ssh_dir.join("config");
     const START_MARKER: &str = "# >>> gitcore managed block >>>";
     const END_MARKER: &str = "# <<< gitcore managed block <<<";
@@ -59,7 +75,14 @@ pub fn update_ssh_config_in_dir(accounts: &[Account], ssh_dir: &Path) -> io::Res
             }
             merged
         } else {
-            format!("{}\n{}", existing.trim_end(), managed_block)
+            let before = existing[..start].trim_end();
+            let mut merged = String::new();
+            if !before.is_empty() {
+                merged.push_str(before);
+                merged.push_str("\n\n");
+            }
+            merged.push_str(&managed_block);
+            merged
         }
     } else if existing.trim().is_empty() {
         managed_block.clone()
@@ -107,6 +130,7 @@ pub(crate) fn generate_ssh_key_in_dir_with(
     email: &str,
     passphrase: &str,
 ) -> io::Result<String> {
+    ensure_ssh_dir(ssh_dir)?;
     let key_full = ssh_dir.join(key_path);
 
     if !key_full.exists() {
@@ -285,5 +309,44 @@ mod tests {
         let status = ExitStatus::from_raw(255);
         let state = classify_ssh_connection(&status, "Permission denied (publickey).");
         assert_eq!(state, SshConnectionState::Failed);
+    }
+
+    #[test]
+    fn test_update_ssh_config_self_healing() {
+        use super::{Account, update_ssh_config_in_dir};
+        use crate::models::Platform;
+        use std::fs;
+        use tempfile::tempdir;
+
+        let dir = tempdir().unwrap();
+        let config_path = dir.path().join("config");
+
+        // Write a corrupt ssh config with a dangling START_MARKER
+        fs::write(
+            &config_path,
+            "Host existing-host\n  HostName example.com\n\n# >>> gitcore managed block >>>\nSome dangling config lines\n",
+        )
+        .unwrap();
+
+        let accounts = vec![Account {
+            name: "work".to_string(),
+            platform: Platform::Github,
+            key_path: "id_ed25519_work".to_string(),
+            host_alias: "github-work".to_string(),
+            username: "tester".to_string(),
+            email: "tester@example.com".to_string(),
+            gpg_key_id: None,
+        }];
+
+        update_ssh_config_in_dir(&accounts, dir.path()).unwrap();
+
+        let content = fs::read_to_string(&config_path).unwrap();
+
+        assert!(content.contains("Host existing-host"));
+        assert!(content.contains("# >>> gitcore managed block >>>"));
+        assert!(content.contains("# <<< gitcore managed block <<<"));
+        assert!(content.contains("Host github-work"));
+        let occurrences = content.matches("# >>> gitcore managed block >>>").count();
+        assert_eq!(occurrences, 1);
     }
 }

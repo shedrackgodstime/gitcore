@@ -373,11 +373,12 @@ fn set_permissions_if_unix(path: &Path, mode: u32) -> std::io::Result<()> {
 }
 
 fn repository_path(working_dir: &Path, repo_url: &str) -> PathBuf {
-    working_dir.join(
-        repo_url
-            .split('/')
-            .next_back()
-            .unwrap_or("repo")
-            .trim_end_matches(".git"),
-    )
+    let name = repo_url
+        .split('/')
+        .map(|s| s.trim())
+        .rfind(|s| !s.is_empty())
+        .map(|s| s.trim_end_matches(".git"))
+        .filter(|s| !s.is_empty())
+        .unwrap_or("repo");
+    working_dir.join(name)
 }

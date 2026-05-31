@@ -1,7 +1,7 @@
 use crate::cli::{Cli, Commands, RemoteCommands};
 use crate::ui::{confirm, print_result, prompt_input, prompt_password, select_account};
 use colored::Colorize;
-use gitcore::{Gitcore, HostKeyStatus, UpdateAccountRequest};
+use gitcore::{Gitcore, HostKeyStatus, UpdateAccountRequest, get_ssh_dir};
 use std::fs;
 use std::io::{self};
 use std::path::PathBuf;
@@ -99,6 +99,12 @@ pub fn run(cli: Cli) -> io::Result<()> {
             let acc = &config.accounts[choice];
             let repo_url =
                 repo.unwrap_or_else(|| prompt_input("Enter repository URL: ").unwrap_or_default());
+
+            println!("\n{}", "Cloning with account:".yellow());
+            println!("  Account: {}", acc.name);
+            println!("  Email:   {}", acc.email);
+            println!("  Remote:  {}:{}", acc.host_alias, repo_url);
+
             let report = match service.clone_repository(gitcore::CloneRequest {
                 account_name: acc.name.clone(),
                 repo_url,
@@ -111,11 +117,6 @@ pub fn run(cli: Cli) -> io::Result<()> {
                     return Ok(());
                 }
             };
-
-            println!("\n{}", "Cloning with account:".yellow());
-            println!("  Account: {}", acc.name);
-            println!("  Email:   {}", acc.email);
-            println!("  Remote:  {}", report.remote_url);
             if report.reused_existing_repo {
                 println!(
                     "{}",
@@ -202,7 +203,11 @@ pub fn run(cli: Cli) -> io::Result<()> {
                                 "{}",
                                 "     Try adding your key to the agent first:".yellow()
                             );
-                            println!("     ssh-add ~/.ssh/{}", report.account.key_path);
+                            println!(
+                                "     ssh-add {}/{}",
+                                get_ssh_dir().display(),
+                                report.account.key_path
+                            );
                         }
                     }
                 }
